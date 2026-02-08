@@ -28,13 +28,10 @@ const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
     <nav className="sticky top-0 z-50 bg-brand-dark/95 backdrop-blur-2xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-24 flex items-center justify-between">
         <div
-          className="flex flex-col items-center justify-center cursor-pointer group py-2"
+          className="cursor-pointer group py-2"
           onClick={() => handleNavigate(Page.HOME)}
         >
-          <Logo size="lg" />
-          <span className="text-xs sm:text-sm font-geometric font-bold tracking-widest text-brand-gold uppercase mt-0.5 group-hover:brightness-110 transition-all">
-            Ecometricus
-          </span>
+          <Logo size="lg" withLabel />
         </div>
 
         {/* Desktop Menu */}

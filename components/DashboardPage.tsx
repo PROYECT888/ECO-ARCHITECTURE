@@ -556,6 +556,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
       {/* Identity Bar - Positioned under main menu */}
       <div className="w-full bg-brand-dark/80 backdrop-blur-md border-b border-brand-gold/20 py-4 px-4 sm:px-8 flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="flex items-center gap-4">
+          <Logo size="md" withLabel />
           <div className="p-2 bg-brand-gold/10 rounded-lg border border-brand-gold/20">
             <UserCheck size={18} className="text-brand-gold" />
           </div>

@@ -2,14 +2,14 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { UserProfile } from '../types';
 import Logo from './Logo';
-import { 
-  Camera, 
-  Info, 
-  Search, 
-  ChevronDown, 
-  Save, 
-  Clock, 
-  Calendar as CalendarIcon, 
+import {
+  Camera,
+  Info,
+  Search,
+  ChevronDown,
+  Save,
+  Clock,
+  Calendar as CalendarIcon,
   Image as ImageIcon,
   CheckCircle2,
   HelpCircle,
@@ -117,7 +117,7 @@ const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {
   const [unit, setUnit] = useState<'kg' | 'lbs' | 'L'>('kg');
   const [showTooltip, setShowTooltip] = useState<string | null>(null);
   const [showNudge, setShowNudge] = useState(false);
-  const [showAlert, setShowAlert] = useState<{msg: string, color: string} | null>(null);
+  const [showAlert, setShowAlert] = useState<{ msg: string, color: string } | null>(null);
 
   // Lists State - Load from LocalStorage for shared session data
   const [wasteEntries, setWasteEntries] = useState<WasteEntry[]>(() => {
@@ -188,14 +188,14 @@ const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {
     if (totals.waste > BENCHMARKS.waste) {
       const deviation = totals.waste - BENCHMARKS.waste;
       const deviationCost = (deviation * 7.50) + (deviation * 1.25);
-      setShowAlert({ 
-        msg: `CRITICAL DEVIATION: Benchmark exceeded by ${deviation.toFixed(1)}${unit}. Potential Financial Loss: $${deviationCost.toFixed(2)}. Alerts sent to Supervisor & Admin.`, 
-        color: '#FF3131' 
+      setShowAlert({
+        msg: `CRITICAL DEVIATION: Benchmark exceeded by ${deviation.toFixed(1)}${unit}. Potential Financial Loss: $${deviationCost.toFixed(2)}. Alerts sent to Supervisor & Admin.`,
+        color: '#FF3131'
       });
     } else if (totals.energy > BENCHMARKS.energy) {
-      setShowAlert({ 
-        msg: `ENERGY SPIKE: Resource flow at ${(totals.energy / BENCHMARKS.energy * 100).toFixed(0)}% of shift capacity. Efficiency compromised.`, 
-        color: '#FF914D' 
+      setShowAlert({
+        msg: `ENERGY SPIKE: Resource flow at ${(totals.energy / BENCHMARKS.energy * 100).toFixed(0)}% of shift capacity. Efficiency compromised.`,
+        color: '#FF914D'
       });
     } else {
       setShowAlert(null);
@@ -203,16 +203,16 @@ const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {
   }, [totals, unit]);
 
   const handleTare = () => {
-    setForm({ 
-      category: '', 
-      subCategory: '', 
-      product: '', 
-      justification: '', 
-      customJustification: '', 
-      amount: '', 
-      imageUrl: '', 
-      water: '', 
-      energy: '' 
+    setForm({
+      category: '',
+      subCategory: '',
+      product: '',
+      justification: '',
+      customJustification: '',
+      amount: '',
+      imageUrl: '',
+      water: '',
+      energy: ''
     });
     setEditingId(null);
     setEditingResourceId(null);
@@ -224,17 +224,17 @@ const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {
     const finalJustification = form.justification === 'Other' ? form.customJustification : form.justification;
 
     if (editingId) {
-      setWasteEntries(prev => prev.map(entry => 
-        entry.id === editingId 
-          ? { 
-              ...entry, 
-              category: form.category, 
-              subCategory: form.subCategory, 
-              product: form.product, 
-              justification: finalJustification,
-              amount: parseFloat(form.amount),
-              unit: unit
-            } 
+      setWasteEntries(prev => prev.map(entry =>
+        entry.id === editingId
+          ? {
+            ...entry,
+            category: form.category,
+            subCategory: form.subCategory,
+            product: form.product,
+            justification: finalJustification,
+            amount: parseFloat(form.amount),
+            unit: unit
+          }
           : entry
       ));
       setEditingId(null);
@@ -281,7 +281,7 @@ const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {
     const val = type === 'water' ? form.water : form.energy;
     if (!val) return;
     if (editingResourceId) {
-      setResourceEntries(prev => prev.map(entry => 
+      setResourceEntries(prev => prev.map(entry =>
         entry.id === editingResourceId ? { ...entry, amount: parseFloat(val) } : entry
       ));
       setEditingResourceId(null);
@@ -311,7 +311,7 @@ const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {
 
   const Tooltip = ({ id, text }: { id: string, text: string }) => (
     <div className="relative inline-block ml-2 align-middle">
-      <button 
+      <button
         type="button"
         onClick={(e) => {
           e.stopPropagation();
@@ -335,7 +335,7 @@ const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {
   }, [form.subCategory]);
 
   return (
-    <div 
+    <div
       className="min-h-screen bg-brand-dark flex flex-col font-body selection:bg-brand-gold/20 selection:text-brand-gold antialiased overflow-x-hidden"
       onClick={() => setShowTooltip(null)}
     >
@@ -343,7 +343,7 @@ const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {
       <header className="sticky top-0 z-50 bg-brand-dark/95 backdrop-blur-xl border-b-2 border-brand-gold/50 h-20 sm:h-24 lg:h-28 shrink-0 shadow-lg px-4 sm:px-8">
         <div className="max-w-[1920px] mx-auto h-full flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
-            <Logo size="md" />
+            <Logo size="md" withLabel />
             <div className="hidden xs:block">
               <h1 className="text-sm sm:text-base lg:text-lg font-geometric font-bold text-white uppercase tracking-tight">Ecometricus Hub</h1>
               <p className="text-[7px] sm:text-[8px] font-black text-brand-gold uppercase tracking-[0.4em]">Kitchen Operations — {user.outletCode}</p>
@@ -367,7 +367,7 @@ const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {
 
       {/* High-Alert Threshold Window - Fluid Layout */}
       {showAlert && (
-        <div 
+        <div
           className="bg-brand-dark border-b-2 border-brand-alert/30 py-3 sm:py-4 px-4 sm:px-6 animate-in slide-in-from-top duration-500 sticky top-20 sm:top-24 lg:top-28 z-40"
           style={{ borderLeft: `6px solid ${showAlert.color}` }}
         >
@@ -401,10 +401,10 @@ const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {
                   <div className="space-y-3 sm:space-y-4">
                     <label className="text-[9px] sm:text-[10px] font-black text-brand-gold uppercase tracking-[0.2em] ml-1">Step 1: Food Waste Category</label>
                     <div className="relative">
-                      <select 
+                      <select
                         required
                         value={form.category}
-                        onChange={e => setForm({...form, category: e.target.value, subCategory: '', product: '', justification: ''})}
+                        onChange={e => setForm({ ...form, category: e.target.value, subCategory: '', product: '', justification: '' })}
                         className="w-full bg-brand-dark border-2 border-white/20 rounded-xl sm:rounded-2xl py-4 sm:py-5 px-5 sm:px-6 text-xs sm:text-sm text-white focus:border-brand-gold outline-none appearance-none cursor-pointer transition-all"
                       >
                         <option value="">Select Category</option>
@@ -417,10 +417,10 @@ const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {
                   <div className={`space-y-3 sm:space-y-4 transition-all duration-300 ${!form.category ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
                     <label className="text-[9px] sm:text-[10px] font-black text-brand-gold uppercase tracking-[0.2em] ml-1">Step 2: Sub-Category Selection</label>
                     <div className="relative">
-                      <select 
+                      <select
                         required
                         value={form.subCategory}
-                        onChange={e => setForm({...form, subCategory: e.target.value, product: '', justification: ''})}
+                        onChange={e => setForm({ ...form, subCategory: e.target.value, product: '', justification: '' })}
                         className="w-full bg-brand-dark border-2 border-white/20 rounded-xl sm:rounded-2xl py-4 sm:py-5 px-5 sm:px-6 text-xs sm:text-sm text-white focus:border-brand-gold outline-none appearance-none cursor-pointer transition-all"
                       >
                         <option value="">Select Sub-Category</option>
@@ -436,12 +436,12 @@ const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {
                       <Tooltip id="prod" text="Select from inventory list or enter manually for unique items." />
                     </div>
                     <div className="relative group">
-                      <input 
+                      <input
                         list="product-suggestions"
                         required
                         placeholder="Select or enter product..."
                         value={form.product}
-                        onChange={e => setForm({...form, product: e.target.value})}
+                        onChange={e => setForm({ ...form, product: e.target.value })}
                         className="w-full bg-brand-dark border-2 border-white/20 rounded-xl sm:rounded-2xl py-4 sm:py-5 px-5 sm:px-6 text-xs sm:text-sm text-white focus:border-brand-gold outline-none transition-all placeholder:text-gray-700"
                       />
                       <datalist id="product-suggestions">
@@ -458,10 +458,10 @@ const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {
                     </div>
                     <div className="space-y-3">
                       <div className="relative">
-                        <select 
+                        <select
                           required
                           value={form.justification}
-                          onChange={e => setForm({...form, justification: e.target.value})}
+                          onChange={e => setForm({ ...form, justification: e.target.value })}
                           className="w-full bg-brand-dark border-2 border-white/20 rounded-xl sm:rounded-2xl py-4 sm:py-5 px-5 sm:px-6 text-xs sm:text-sm text-white focus:border-brand-gold outline-none appearance-none cursor-pointer transition-all"
                         >
                           <option value="">Select Primary Reason</option>
@@ -470,11 +470,11 @@ const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {
                         <ChevronDown className="absolute right-5 sm:right-6 top-1/2 -translate-y-1/2 text-brand-gold pointer-events-none" size={18} />
                       </div>
                       {form.justification === 'Other' && (
-                        <textarea 
+                        <textarea
                           required
                           placeholder="Please describe the reason..."
                           value={form.customJustification}
-                          onChange={e => setForm({...form, customJustification: e.target.value})}
+                          onChange={e => setForm({ ...form, customJustification: e.target.value })}
                           className="w-full bg-brand-dark border-2 border-white/20 rounded-xl sm:rounded-2xl py-4 px-5 sm:px-6 text-xs sm:text-sm text-white focus:border-brand-gold outline-none transition-all h-24 lg:h-32 resize-none"
                         />
                       )}
@@ -512,21 +512,21 @@ const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {
                   <div className="space-y-4">
                     <label className="text-[9px] sm:text-[10px] font-black text-brand-gold uppercase tracking-[0.2em] ml-1">Step 5: Weight / Volume Entry</label>
                     <div className="relative">
-                      <input 
+                      <input
                         required
                         type="number"
                         placeholder="0.00"
                         step="0.01"
                         value={form.amount}
-                        onChange={e => setForm({...form, amount: e.target.value})}
+                        onChange={e => setForm({ ...form, amount: e.target.value })}
                         className="w-full bg-brand-dark border-2 border-white/20 rounded-xl sm:rounded-2xl py-6 sm:py-8 px-6 sm:px-10 text-3xl sm:text-4xl lg:text-5xl font-geometric font-bold text-white focus:border-brand-gold outline-none transition-all placeholder:text-white/5"
                       />
                       <div className="absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 flex bg-brand-dark/90 p-1 rounded-xl sm:rounded-2xl border-2 border-white/10 scale-90 sm:scale-100">
                         {['kg', 'lbs', 'L'].map(u => (
-                          <button 
-                            key={u} 
-                            type="button" 
-                            onClick={() => setUnit(u as any)} 
+                          <button
+                            key={u}
+                            type="button"
+                            onClick={() => setUnit(u as any)}
                             className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl text-[8px] sm:text-[9px] font-black uppercase transition-all ${unit === u ? 'bg-brand-gold text-brand-dark shadow-lg' : 'text-gray-500 hover:text-white'}`}
                           >
                             {u}
@@ -540,13 +540,13 @@ const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {
 
               {/* Submission Area - Fluid stacking */}
               <div className="pt-8 sm:pt-12 border-t-2 border-white/10 flex flex-col sm:flex-row gap-4 sm:gap-6">
-                <button 
+                <button
                   type="submit"
                   className="flex-[2] py-5 sm:py-6 lg:py-8 bg-brand-eco text-brand-dark rounded-full font-black uppercase tracking-[0.3em] text-[11px] sm:text-xs lg:text-sm hover:brightness-110 active:scale-95 transition-all shadow-[0_15px_40px_rgba(119,177,57,0.4)] flex items-center justify-center gap-4"
                 >
                   <Save size={24} /> {editingId ? "Update Log Entry" : "Commit Log Entry"}
                 </button>
-                <button 
+                <button
                   type="button"
                   className="flex-1 py-5 sm:py-6 lg:py-8 bg-brand-dark border-2 border-brand-gold text-brand-gold rounded-full font-black uppercase tracking-widest text-[10px] sm:text-[11px] hover:bg-brand-gold hover:text-brand-dark transition-all flex items-center justify-center gap-3"
                 >
@@ -577,27 +577,27 @@ const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {
             { type: 'energy', label: 'Energy Log (kWh)', icon: Zap, color: 'text-brand-energy', bg: 'bg-brand-energy/10', border: 'border-brand-energy/30', unit: 'Kilowatts (kWh)' }
           ].map(r => (
             <div key={r.type} className="bg-[#0f2420] border-2 border-brand-gold/40 p-6 sm:p-8 lg:p-10 rounded-[30px] sm:rounded-[40px] shadow-2xl space-y-6 sm:space-y-8 group hover:border-brand-gold/70 transition-all">
-               <div className="flex items-center justify-between">
-                 <div className="flex items-center gap-3 sm:gap-4">
-                   <div className={`p-3 ${r.bg} rounded-xl sm:rounded-2xl border-2 ${r.border}`}>
-                      <r.icon className={r.color} size={24} />
-                   </div>
-                   <h3 className="text-[10px] sm:text-[12px] font-black text-brand-gold uppercase tracking-[0.2em] sm:tracking-[0.3em]">{r.label}</h3>
-                 </div>
-                 <Tooltip id={r.type} text={`Log current ${r.type} meter readings.`} />
-               </div>
-               <div className="flex gap-3 sm:gap-4">
-                 <input 
-                   type="number" 
-                   placeholder={r.unit} 
-                   value={r.type === 'water' ? form.water : form.energy}
-                   onChange={e => setForm({...form, [r.type]: e.target.value})}
-                   className="flex-grow bg-brand-dark border-2 border-white/20 rounded-xl sm:rounded-2xl px-5 sm:px-6 py-4 sm:py-5 text-base sm:text-lg lg:text-xl font-bold outline-none focus:border-brand-gold text-white"
-                 />
-                 <button onClick={() => handleSaveResource(r.type as any)} className="bg-brand-eco p-4 sm:p-5 rounded-xl sm:rounded-2xl text-brand-dark hover:brightness-110 active:scale-90 transition-all shadow-xl">
-                   <Plus size={24} strokeWidth={4} />
-                 </button>
-               </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className={`p-3 ${r.bg} rounded-xl sm:rounded-2xl border-2 ${r.border}`}>
+                    <r.icon className={r.color} size={24} />
+                  </div>
+                  <h3 className="text-[10px] sm:text-[12px] font-black text-brand-gold uppercase tracking-[0.2em] sm:tracking-[0.3em]">{r.label}</h3>
+                </div>
+                <Tooltip id={r.type} text={`Log current ${r.type} meter readings.`} />
+              </div>
+              <div className="flex gap-3 sm:gap-4">
+                <input
+                  type="number"
+                  placeholder={r.unit}
+                  value={r.type === 'water' ? form.water : form.energy}
+                  onChange={e => setForm({ ...form, [r.type]: e.target.value })}
+                  className="flex-grow bg-brand-dark border-2 border-white/20 rounded-xl sm:rounded-2xl px-5 sm:px-6 py-4 sm:py-5 text-base sm:text-lg lg:text-xl font-bold outline-none focus:border-brand-gold text-white"
+                />
+                <button onClick={() => handleSaveResource(r.type as any)} className="bg-brand-eco p-4 sm:p-5 rounded-xl sm:rounded-2xl text-brand-dark hover:brightness-110 active:scale-90 transition-all shadow-xl">
+                  <Plus size={24} strokeWidth={4} />
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -663,8 +663,8 @@ const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {
           <div className="space-y-6">
             <h3 className="text-[11px] sm:text-[14px] font-black text-white uppercase tracking-[0.4em] px-2 sm:px-4">Verification: Resource Flows</h3>
             <div className="bg-[#0f2420] border-2 border-white/20 rounded-[24px] sm:rounded-[40px] overflow-hidden shadow-2xl">
-               <div className="overflow-x-auto scrollbar-hide">
-                 <table className="w-full text-left border-collapse min-w-[600px]">
+              <div className="overflow-x-auto scrollbar-hide">
+                <table className="w-full text-left border-collapse min-w-[600px]">
                   <thead>
                     <tr className="bg-brand-dark/80 border-b-2 border-white/10">
                       <th className="px-6 sm:px-8 py-5 sm:py-6 text-[9px] sm:text-[10px] font-black text-brand-gold uppercase tracking-[0.2em]">Flow Type</th>
@@ -695,8 +695,8 @@ const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {
                       </tr>
                     ))}
                   </tbody>
-                 </table>
-               </div>
+                </table>
+              </div>
             </div>
           </div>
         </div>
@@ -704,110 +704,111 @@ const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {
 
       {/* 5. Mila AI Actionable Intelligence Container - Fluid Grid */}
       <div className="max-w-6xl mx-auto px-4 sm:px-10 pb-16 sm:pb-24 lg:pb-32">
-         <div className="bg-[#0f2420] border-2 border-brand-gold/60 rounded-[30px] sm:rounded-[40px] p-6 sm:p-10 lg:p-14 relative overflow-hidden group shadow-2xl">
-            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">
-              <MessageSquare size={160} className="text-brand-gold" />
+        <div className="bg-[#0f2420] border-2 border-brand-gold/60 rounded-[30px] sm:rounded-[40px] p-6 sm:p-10 lg:p-14 relative overflow-hidden group shadow-2xl">
+          <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">
+            <MessageSquare size={160} className="text-brand-gold" />
+          </div>
+          <div className="flex items-center gap-4 sm:gap-6 mb-10 sm:mb-14">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-brand-gold rounded-xl sm:rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(200,164,19,0.4)] border-2 border-white/20 shrink-0">
+              <Cpu className="text-brand-dark" size={32} />
             </div>
-            <div className="flex items-center gap-4 sm:gap-6 mb-10 sm:mb-14">
-               <div className="w-12 h-12 sm:w-16 sm:h-16 bg-brand-gold rounded-xl sm:rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(200,164,19,0.4)] border-2 border-white/20 shrink-0">
-                 <Cpu className="text-brand-dark" size={32} />
-               </div>
-               <div>
-                 <h3 className="text-lg sm:text-xl lg:text-2xl font-geometric font-black text-white uppercase tracking-tight">Mila Actionable Intelligence</h3>
-                 <p className="text-[7px] sm:text-[9px] font-black text-brand-gold uppercase tracking-[0.4em] mt-1 sm:mt-2">Sustainability Performance Proportional Scaling</p>
-               </div>
+            <div>
+              <h3 className="text-lg sm:text-xl lg:text-2xl font-geometric font-black text-white uppercase tracking-tight">Mila Actionable Intelligence</h3>
+              <p className="text-[7px] sm:text-[9px] font-black text-brand-gold uppercase tracking-[0.4em] mt-1 sm:mt-2">Sustainability Performance Proportional Scaling</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10 relative z-10">
+            <div className="space-y-4 p-6 sm:p-8 bg-brand-dark/40 rounded-[24px] sm:rounded-[32px] border-2 border-white/10 shadow-inner group/card hover:border-brand-gold/40 transition-all">
+              <span className="text-[9px] sm:text-[10px] font-black text-brand-gold uppercase tracking-widest flex items-center gap-3">
+                <Cloud size={16} /> Carbon Lifecycle
+              </span>
+              <div className="text-2xl sm:text-3xl font-black text-white transition-all group-hover/card:text-brand-gold">
+                {totals.carbonImpact.toFixed(1)} <span className="text-[10px] sm:text-[11px] font-light text-gray-500 uppercase">kg CO2e</span>
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <TrendingDown className="text-brand-alert" size={14} />
+                <p className="text-[8px] sm:text-[10px] text-gray-500 uppercase font-bold tracking-wider">Operational deviation impact.</p>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10 relative z-10">
-               <div className="space-y-4 p-6 sm:p-8 bg-brand-dark/40 rounded-[24px] sm:rounded-[32px] border-2 border-white/10 shadow-inner group/card hover:border-brand-gold/40 transition-all">
-                  <span className="text-[9px] sm:text-[10px] font-black text-brand-gold uppercase tracking-widest flex items-center gap-3">
-                    <Cloud size={16} /> Carbon Lifecycle
-                  </span>
-                  <div className="text-2xl sm:text-3xl font-black text-white transition-all group-hover/card:text-brand-gold">
-                    {totals.carbonImpact.toFixed(1)} <span className="text-[10px] sm:text-[11px] font-light text-gray-500 uppercase">kg CO2e</span>
-                  </div>
-                  <div className="flex items-center gap-2 mt-2">
-                    <TrendingDown className="text-brand-alert" size={14} />
-                    <p className="text-[8px] sm:text-[10px] text-gray-500 uppercase font-bold tracking-wider">Operational deviation impact.</p>
-                  </div>
-               </div>
-
-               <div className="space-y-4 p-6 sm:p-8 bg-brand-dark/40 rounded-[24px] sm:rounded-[32px] border-2 border-white/10 shadow-inner group/card hover:border-blue-500/40 transition-all">
-                  <span className="text-[9px] sm:text-[10px] font-black text-brand-gold uppercase tracking-widest flex items-center gap-3">
-                    <Droplets size={16} /> Water Resource
-                  </span>
-                  <div className="text-2xl sm:text-3xl font-black text-white transition-all group-hover/card:text-blue-400">
-                    {totals.waterFootprint.toFixed(1)} <span className="text-[10px] sm:text-[11px] font-light text-gray-500 uppercase">m³ Loss</span>
-                  </div>
-                  <div className="flex items-center gap-2 mt-2">
-                    <TrendingDown className="text-brand-alert" size={14} />
-                    <p className="text-[8px] sm:text-[10px] text-gray-500 uppercase font-bold tracking-wider">Averted loss footprint.</p>
-                  </div>
-               </div>
-
-               <div className={`md:col-span-2 lg:col-span-1 space-y-4 p-6 sm:p-8 rounded-[24px] sm:rounded-[32px] border-2 shadow-[0_10px_30px_rgba(0,0,0,0.3)] transition-all ${totals.waste > BENCHMARKS.waste ? 'bg-brand-alert/10 border-brand-alert/40' : 'bg-brand-eco/10 border-brand-eco/40'}`}>
-                  <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-widest flex items-center gap-3 ${totals.waste > BENCHMARKS.waste ? 'text-brand-alert' : 'text-brand-eco'}`}>
-                    <DollarSign size={16} /> Financial Impact
-                  </span>
-                  <div className={`text-2xl sm:text-3xl lg:text-4xl font-black ${totals.waste > BENCHMARKS.waste ? 'text-brand-alert' : 'text-brand-eco'}`}>
-                    ${totals.totalFinancialLoss.toFixed(2)}
-                  </div>
-                  <div className="pt-3 sm:pt-4 border-t border-white/10 mt-2 sm:mt-4 space-y-1 sm:space-y-2">
-                    <div className="flex justify-between text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-gray-500">
-                      <span>Item Loss:</span>
-                      <span className="text-white">${totals.financialLossItems.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-gray-500">
-                      <span>Logistics:</span>
-                      <span className="text-white">${totals.financialLossDisposal.toFixed(2)}</span>
-                    </div>
-                  </div>
-                  <p className="text-[8px] sm:text-[9px] text-gray-400 uppercase font-medium leading-relaxed tracking-wider mt-3 sm:mt-4">
-                    {totals.waste > BENCHMARKS.waste 
-                      ? "Escalation triggered supervisor report." 
-                      : "Loss within pre-set parameters."}
-                  </p>
-               </div>
+            <div className="space-y-4 p-6 sm:p-8 bg-brand-dark/40 rounded-[24px] sm:rounded-[32px] border-2 border-white/10 shadow-inner group/card hover:border-blue-500/40 transition-all">
+              <span className="text-[9px] sm:text-[10px] font-black text-brand-gold uppercase tracking-widest flex items-center gap-3">
+                <Droplets size={16} /> Water Resource
+              </span>
+              <div className="text-2xl sm:text-3xl font-black text-white transition-all group-hover/card:text-blue-400">
+                {totals.waterFootprint.toFixed(1)} <span className="text-[10px] sm:text-[11px] font-light text-gray-500 uppercase">m³ Loss</span>
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <TrendingDown className="text-brand-alert" size={14} />
+                <p className="text-[8px] sm:text-[10px] text-gray-500 uppercase font-bold tracking-wider">Averted loss footprint.</p>
+              </div>
             </div>
-         </div>
+
+            <div className={`md:col-span-2 lg:col-span-1 space-y-4 p-6 sm:p-8 rounded-[24px] sm:rounded-[32px] border-2 shadow-[0_10px_30px_rgba(0,0,0,0.3)] transition-all ${totals.waste > BENCHMARKS.waste ? 'bg-brand-alert/10 border-brand-alert/40' : 'bg-brand-eco/10 border-brand-eco/40'}`}>
+              <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-widest flex items-center gap-3 ${totals.waste > BENCHMARKS.waste ? 'text-brand-alert' : 'text-brand-eco'}`}>
+                <DollarSign size={16} /> Financial Impact
+              </span>
+              <div className={`text-2xl sm:text-3xl lg:text-4xl font-black ${totals.waste > BENCHMARKS.waste ? 'text-brand-alert' : 'text-brand-eco'}`}>
+                ${totals.totalFinancialLoss.toFixed(2)}
+              </div>
+              <div className="pt-3 sm:pt-4 border-t border-white/10 mt-2 sm:mt-4 space-y-1 sm:space-y-2">
+                <div className="flex justify-between text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-gray-500">
+                  <span>Item Loss:</span>
+                  <span className="text-white">${totals.financialLossItems.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-gray-500">
+                  <span>Logistics:</span>
+                  <span className="text-white">${totals.financialLossDisposal.toFixed(2)}</span>
+                </div>
+              </div>
+              <p className="text-[8px] sm:text-[9px] text-gray-400 uppercase font-medium leading-relaxed tracking-wider mt-3 sm:mt-4">
+                {totals.waste > BENCHMARKS.waste
+                  ? "Escalation triggered supervisor report."
+                  : "Loss within pre-set parameters."}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Persistent Footer - Fluid stacking for 9:16 vs 16:9 */}
       <footer className="bg-brand-dark/95 border-t-2 border-brand-gold/50 py-8 sm:py-10 lg:py-14 px-6 sm:px-12 shrink-0">
         <div className="max-w-[1920px] mx-auto flex flex-col xl:flex-row items-center justify-between gap-10 lg:gap-14">
-           <div className="flex flex-wrap justify-center items-center gap-10 sm:gap-16">
-              <div className="text-center sm:text-left min-w-[140px]">
-                <span className="block text-[8px] sm:text-[10px] font-black text-gray-600 uppercase tracking-widest mb-1 sm:mb-2">CUMULATIVE WASTE</span>
-                <span className={`text-xs sm:text-sm lg:text-base font-geometric font-bold uppercase tracking-tight ${totals.waste > BENCHMARKS.waste ? 'text-brand-alert' : 'text-white'}`}>
-                  {totals.waste.toFixed(1)} / {BENCHMARKS.waste} {unit}
-                </span>
+          <div className="flex flex-wrap justify-center items-center gap-10 sm:gap-16">
+            <div className="text-center sm:text-left min-w-[140px]">
+              <span className="block text-[8px] sm:text-[10px] font-black text-gray-600 uppercase tracking-widest mb-1 sm:mb-2">CUMULATIVE WASTE</span>
+              <span className={`text-xs sm:text-sm lg:text-base font-geometric font-bold uppercase tracking-tight ${totals.waste > BENCHMARKS.waste ? 'text-brand-alert' : 'text-white'}`}>
+                {totals.waste.toFixed(1)} / {BENCHMARKS.waste} {unit}
+              </span>
+            </div>
+            <div className="h-10 sm:h-12 w-[1.5px] bg-white/10 hidden sm:block" />
+            <div className="text-center sm:text-left min-w-[140px]">
+              <span className="block text-[8px] sm:text-[10px] font-black text-gray-600 uppercase tracking-widest mb-1 sm:mb-2">DATA STATUS</span>
+              <div className="flex items-center justify-center sm:justify-start gap-2 sm:gap-3">
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-brand-eco animate-pulse shadow-[0_0_10px_#77B139]" />
+                <span className="text-[9px] sm:text-[11px] font-bold text-brand-eco uppercase tracking-widest">LIVE SYNC ACTIVE</span>
               </div>
-              <div className="h-10 sm:h-12 w-[1.5px] bg-white/10 hidden sm:block" />
-              <div className="text-center sm:text-left min-w-[140px]">
-                <span className="block text-[8px] sm:text-[10px] font-black text-gray-600 uppercase tracking-widest mb-1 sm:mb-2">DATA STATUS</span>
-                <div className="flex items-center justify-center sm:justify-start gap-2 sm:gap-3">
-                  <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-brand-eco animate-pulse shadow-[0_0_10px_#77B139]" />
-                  <span className="text-[9px] sm:text-[11px] font-bold text-brand-eco uppercase tracking-widest">LIVE SYNC ACTIVE</span>
-                </div>
-              </div>
-              <div className="h-10 sm:h-12 w-[1.5px] bg-white/10 hidden sm:block" />
-              <div className="text-center sm:text-left min-w-[140px]">
-                <span className="block text-[8px] sm:text-[10px] font-black text-gray-600 uppercase tracking-widest mb-1 sm:mb-2">OUTLET IDENTIFIER</span>
-                <span className="text-xs sm:text-sm lg:text-base font-geometric font-bold text-brand-gold uppercase tracking-tight">{user.outletCode}</span>
-              </div>
-           </div>
-           
-           <button 
-             onClick={onLogout}
-             className="flex items-center gap-3 sm:gap-4 text-[10px] sm:text-[11px] font-black text-gray-500 uppercase tracking-[0.3em] hover:text-brand-alert transition-all group px-8 sm:px-12 py-3 sm:py-4 rounded-full border-2 border-white/10 hover:border-brand-alert/40 shadow-xl"
-           >
-             <LogOut size={18} className="group-hover:-translate-x-1 transition-transform" />
-             TERMINATE SESSION
-           </button>
+            </div>
+            <div className="h-10 sm:h-12 w-[1.5px] bg-white/10 hidden sm:block" />
+            <div className="text-center sm:text-left min-w-[140px]">
+              <span className="block text-[8px] sm:text-[10px] font-black text-gray-600 uppercase tracking-widest mb-1 sm:mb-2">OUTLET IDENTIFIER</span>
+              <span className="text-xs sm:text-sm lg:text-base font-geometric font-bold text-brand-gold uppercase tracking-tight">{user.outletCode}</span>
+            </div>
+          </div>
+
+          <button
+            onClick={onLogout}
+            className="flex items-center gap-3 sm:gap-4 text-[10px] sm:text-[11px] font-black text-gray-500 uppercase tracking-[0.3em] hover:text-brand-alert transition-all group px-8 sm:px-12 py-3 sm:py-4 rounded-full border-2 border-white/10 hover:border-brand-alert/40 shadow-xl"
+          >
+            <LogOut size={18} className="group-hover:-translate-x-1 transition-transform" />
+            TERMINATE SESSION
+          </button>
         </div>
       </footer>
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { 
           -webkit-appearance: none; 

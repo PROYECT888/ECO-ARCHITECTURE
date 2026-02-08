@@ -105,7 +105,7 @@ const SentimentTemplateChart: React.FC<SentimentTemplateChartProps> = ({ data, b
                             className="drop-shadow-[0_0_4px_rgba(119,177,57,0.3)]"
                         />
 
-                        {/* Markers - Thinner, Stylish Rings (Static) */}
+                        {/* Markers - Thinner, Stylish Rings (Dynamic like Food Cost) */}
                         {data.map((d, i) => {
                             const x = getX(i, data.length);
                             const y = getY(d.sentiment);
@@ -113,24 +113,24 @@ const SentimentTemplateChart: React.FC<SentimentTemplateChartProps> = ({ data, b
 
                             return (
                                 <g key={i} className="cursor-pointer group/point" onClick={(e) => { e.stopPropagation(); setSelectedDay(d); }}>
-                                    {/* Hit Area */}
-                                    <circle cx={x} cy={y} r="8" fill="transparent" />
-
-                                    {/* Visible Marker - Delicate Green Ring (Static Size) */}
-                                    {/* Removed click/hover styling, fixed radius */}
+                                    {/* Invisible hit area */}
+                                    <circle cx={x} cy={y} r="12" fill="transparent" />
+                                    {/* Outer Glow for selection */}
                                     <circle
-                                        cx={x}
-                                        cy={y}
-                                        r="2.5"
-                                        fill="#0f2420"
+                                        cx={x} cy={y}
+                                        r={isSelected ? "4" : "0"}
+                                        fill="#77B139"
+                                        className="opacity-20 transition-all duration-300"
+                                    />
+                                    {/* Main Dot */}
+                                    <circle
+                                        cx={x} cy={y}
+                                        r={isSelected ? "2.5" : "1.5"}
+                                        fill="#152E2A"
                                         stroke="#77B139"
                                         strokeWidth="1"
-                                        className="transition-colors duration-300"
+                                        className="transition-all duration-300"
                                     />
-                                    {/* Inner Dot - Selection Indicator (Static Position) */}
-                                    {isSelected && (
-                                        <circle cx={x} cy={y} r="1" fill="#77B139" />
-                                    )}
                                 </g>
                             );
                         })}
