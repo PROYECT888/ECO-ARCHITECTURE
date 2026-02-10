@@ -88,7 +88,7 @@ const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, onLogou
   // Operational Benchmarks
   const benchmarks = {
     waste: 100,
-    foodCost: 29.0,
+    foodCost: 28.0,
     laborCost: 28.0,
     profitMargin: 18.0,
     avgSales: 50000
@@ -416,9 +416,9 @@ const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, onLogou
           {showKpiAlert && (
             <div className="col-span-1 lg:col-span-2 max-w-[1600px] mx-auto mt-0 w-full">
               <ReportAlertBoxKPI
-                title="KPI DEVIATION ALERT: FOOD COST SPIKE"
-                issue={`Current Food Cost (${operationalData.foodCost}%) exceeds operational benchmark (${benchmarks.foodCost}%).`}
-                suggestion="Review portion control on protein items and check waste logs for spoilage."
+                title="KPI DEVIATION ALERT: FOOD COST"
+                issue={`Current Food Cost (${operationalData.foodCost}%) exceeds operational benchmark.`}
+                suggestion="Review portion control on protein items and check waste logs."
                 type="kpi"
               />
             </div>
