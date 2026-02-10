@@ -46,6 +46,8 @@ import AvgCheckTemplateChart from './AvgCheckTemplateChart';
 import SalesTemplateChart from './SalesTemplateChart';
 import SentimentTemplateChart from './SentimentTemplateChart';
 import MilaWidget from './MilaWidget';
+import ReportAlertBox from './ReportAlertBox';
+import ReportAlertBoxKPI from './ReportAlertBoxKPI';
 
 interface SupervisorDashboardProps {
   user: UserProfile;
@@ -161,6 +163,17 @@ const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, onLogou
   };
 
   const impacts = sessionData.impacts;
+
+  // REPORT ALERTS LOGIC
+  // 1. KPI Alert: Daily Food Cost > Benchmark
+  const showKpiAlert = operationalData.foodCost > benchmarks.foodCost;
+  // 2. Sustainability Alert: Daily Waste > Benchmark
+  const showSustainabilityAlert = operationalData.waste.kg > benchmarks.waste;
+
+  const activeAlerts = {
+    kpi: showKpiAlert,
+    sustainability: showSustainabilityAlert
+  };
 
   // Derived information linked to Admin Data
   const currentOutletName = useMemo(() => {
@@ -399,6 +412,18 @@ const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, onLogou
             />
           </div>
 
+          {/* KPI REPORT ALERT CONTAINER */}
+          {showKpiAlert && (
+            <div className="col-span-1 lg:col-span-2 max-w-[1600px] mx-auto mt-0 w-full">
+              <ReportAlertBoxKPI
+                title="KPI DEVIATION ALERT: FOOD COST SPIKE"
+                issue={`Current Food Cost (${operationalData.foodCost}%) exceeds operational benchmark (${benchmarks.foodCost}%).`}
+                suggestion="Review portion control on protein items and check waste logs for spoilage."
+                type="kpi"
+              />
+            </div>
+          )}
+
           {/* SUSTAINABILITY REPORT Header - Section Title */}
           <div className="col-span-1 lg:col-span-2 mt-4 mb-2">
             <h2 className="text-2xl sm:text-3xl font-geometric font-black text-white uppercase tracking-tight">SUSTAINABILITY REPORT</h2>
@@ -461,6 +486,18 @@ const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, onLogou
             />
           </div>
         </div>
+
+        {/* SUSTAINABILITY REPORT ALERT CONTAINER */}
+        {showSustainabilityAlert && (
+          <div className="max-w-[1600px] mx-auto mt-0">
+            <ReportAlertBox
+              title="SUSTAINABILITY ALERT: EXCESSIVE WASTE"
+              issue={`Daily Organic Waste (${operationalData.waste.kg}kg) exceeds ESG target (${benchmarks.waste}kg).`}
+              suggestion="Implement 'Seconds' program for buffet leftovers or audit prep-station trimming."
+              type="sustainability"
+            />
+          </div>
+        )}
 
         {/* Metric Analytic Cumulative Cards - Linked with Session Waste, Water, Energy */}
         <div className="max-w-[1600px] mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
@@ -595,6 +632,8 @@ const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, onLogou
         benchmarks,
         weeklyTrends,
         currentShift: 'Lunch', // Mock context
+        userName: user.fullName,
+        activeAlerts // Pass alert context to Mila
       }} />
 
       <style dangerouslySetInnerHTML={{

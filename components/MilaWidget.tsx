@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, X, Send, Sparkles, User, Loader2, Minimize2, Maximize2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+// @ts-ignore
+import KNOWLEDGE_BASE from '../mila.knowledge.txt?raw';
 
 interface MilaWidgetProps {
     context: any;
@@ -12,139 +15,38 @@ interface Message {
     timestamp: Date;
 }
 
-// HARDCODED KNOWLEDGE BASE (Source: mila.knowledge.txt)
-const KNOWLEDGE_BASE = `
-MILA AI - MASTER KNOWLEDGE BASE v2026.1
-==========================================
-
-SECTION 1: GSTC 2025/2026 & ESG CRITERIA (F&B FOCUS)
---------------------------------------------------
-1.1. Resource Management (Section D2)
-    - Goal: Minimize consumption of energy, water, and materials.
-    - F&B Specific:
-        - Energy: Use of induction cooking, LED lighting in BOH, smart HVAC.
-        - Water: Lawns/Plants watering schedule, low-flow aerators (target <6L/min).
-        - Waste: Strict separation (Organic, Plastic, Paper, Glass, Metal).
-
-1.2. Circular Economy (Section D3)
-    - Practice: "Cradle to Cradle" approach.
-    - Application: 
-        - Zero single-use plastics in guest-facing areas.
-        - Suppliers must provide reusable/recyclable packaging.
-        - Food waste -> Composting/Biogas (where locally available).
-
-1.3. CSRD Reporting (2026 Mandatory)
-    - Scope 3 Emissions: Required reporting on supply chain carbon footprint.
-    - Social Impact: Documented evidence of fair labor practices and community engagement.
-
-SECTION 2: 12-METRIC ANALYTICS ENGINE (DEFINITIONS & 2026 TARGETS)
-----------------------------------------------------------------
-2.1. OPERATIONAL KPIs
-    1. Food Cost % (FC%)
-       - Formula: (Cost of Goods Sold / Food Sales) * 100
-       - 2026 Target: 28.0% - 32.0% (Luxury Tier)
-       - Logic: High FC% often indicates waste, theft, or poor purchasing.
-    
-    2. Labor Cost % (LC%)
-       - Formula: (Total Labor Cost / Total Sales) * 100
-       - 2026 Target: 25.0% - 30.0%
-       - Logic: vital to balance service quality (Human Touch) with efficiency.
-    
-    3. Profit Margin % (PM%)
-       - Formula: (Net Profit / Total Sales) * 100
-       - 2026 Target: >18.0%
-       - Logic: Sustainability initiatives must ultimately support this metric.
-    
-    4. Total Outlet Revenue
-       - Formula: Sum of all sales channels.
-       - Target: >$50,000 / week (Variable by size).
-    
-    5. Beverage Cost % (BC%)
-       - Formula: (Cost of Bev Sold / Bev Sales) * 100
-       - Target: 18.0% - 22.0%
-    
-    6. Average Check ($)
-       - Formula: Total Revenue / Total Covers
-       - Target: >$65 (Dinner), >$35 (Lunch)
-
-2.2. HUMAN/SOCIAL METRICS
-    7. Staff Engagement Score (SES)
-       - Scale: 1-10 (Survey based)
-       - Target: >8.5
-       - *DUAL-STREAM LOGIC*: Low SES (<7.0) correlates with +15% Higher Food Waste and +5% Higher Turnover.
-       
-    8. Training Participation Ratio
-       - Formula: (Staff Trained / Total Staff) * 100
-       - Target: 100% Monthly
-       - *DUAL-STREAM LOGIC*: Low Training (<80%) correlates with +10% Operational Errors (Waste/Breakage).
-       
-    9. Customer Sentiment Rating (CSR)
-       - Scale: 1-5 Stars
-       - Target: >4.5 Stars
-       - Logic: Direct reflection of Staff Engagement + Product Quality.
-
-2.3. ENVIRONMENTAL METRICS
-    10. Food Waste (Kg)
-        - Formula: Total Weight of Pre-consumer + Post-consumer waste.
-        - Target: <0.15 Kg per Cover
-        - *DUAL-STREAM LOGIC*: High Waste (>0.3kg/cover) indicates Staff Training Gaps (Human Metric).
-        
-    11. Energy Usage (kWh)
-        - Target: <15 kWh per Cover (F&B Specific)
-        
-    12. Carbon Footprint (CO2e)
-        - Formula: Waste Kg * 2.85 + Energy * Factor
-        - Target: Neutral or Negative offsetting.
-
-SECTION 3: REGIONAL BENCHMARKS (2026 STANDARDS)
----------------------------------------------
-| Region       | Food Waste (Kg/Cover) | Food Cost % | Labor Cost % | Energy (kWh/Cover) |
-|--------------|-----------------------|-------------|--------------|--------------------|
-| MIDDLE EAST  | 0.35                  | 31.0%       | 22.0%        | 25.0               |
-| LATAM        | 0.25                  | 33.0%       | 18.0%        | 12.0               |
-| USA          | 0.28                  | 28.0%       | 32.0%        | 18.0               |
-| EUROPE       | 0.18                  | 29.0%       | 35.0%        | 14.0               |
-| ASEAN        | 0.30                  | 30.0%       | 15.0%        | 20.0               |
-
-*Logic*: Adjust "Target" based on Outlet's Region defined in Admin Settings.
-
-SECTION 4: HOTEL PARAMETER LOGIC
-------------------------------
-- LUXURY TIER (5-Star+):
-  - Tolerance for Higher Labor Cost (+5%) to ensure service.
-  - Zero tolerance for plastic.
-  - Emphasis on "Review Score" over "Volume."
-
-- ECO-LOUNGE:
-  - Strict Waste Target (<0.10 Kg/Cover).
-  - Menu must be >60% Plant-Based (Low Carbon).
-
-- BUSINESS / CITY:
-  - Speed of service (Avg Check Time) is priority.
-  - Efficiency metrics (Labor/Rev) carry higher weight.
-
-SECTION 5: SYSTEM PROMPT INSTRUCTIONS FOR MILA
---------------------------------------------
-1.  **Identity**: You are Mila. You do NOT just "report" numbers. You "Analyze and Strategize."
-2.  **Source of Truth**: ALWAYS refer to the Targets in Section 2 & 3 above. If a user has 35% Food Cost, do not just say "It is high." Say "It is 7% above the Luxury Standard of 28%."
-3.  **Dual-Stream Analysis**:
-    -   IF (Food Waste is High) AND (Staff Engagement is Low) -> ADVICE: "Waste is high likely due to low staff morale/focus. Suggest 'Team Building' or 'Incentive Program' rather than just 'Stricter Waste Rules'."
-    -   IF (Profit is Low) AND (Customer Sentiment is High) -> ADVICE: "Guests love the product but we are undercharging or over-portioning. Review Menu Pricing vs. Plate Waste."
-4.  **Tone**: Professional, Empathetic, Concise, Executive-Level.
-5.  **Forbidden**: Do not hallucinate metrics not present in the context. If data is missing, ask for it.
-`;
-
 const MilaWidget: React.FC<MilaWidgetProps> = ({ context }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
-    const [messages, setMessages] = useState<Message[]>([
-        {
-            id: '1',
-            sender: 'mila',
-            text: "Hello! I'm Mila, your ESG Strategy Assistant. I've analyzed today's operational metrics. How can I help optimize your sustainability targets?",
-            timestamp: new Date()
-        }
-    ]);
+    const [userName, setUserName] = useState('');
+    const [step, setStep] = useState<'name_capture' | 'chat'>('name_capture');
+
+    // Dynamic Greeting Logic (Hard-Coded Gate)
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour >= 5 && hour < 12) return "Good morning";
+        if (hour >= 12 && hour < 18) return "Good afternoon";
+        return "Good evening";
+    };
+
+    const [messages, setMessages] = useState<Message[]>([]);
+
+    // Initialize Greeting on Mount
+    useEffect(() => {
+        const greeting = getGreeting();
+        // Force the specific initial message requesting name
+        const initialText = `${greeting}. Welcome to Ecometricus. My name is Mila; I am your KPI and ESG strategist. May I have your name?`;
+
+        setMessages([
+            {
+                id: '1',
+                sender: 'mila',
+                text: initialText,
+                timestamp: new Date()
+            }
+        ]);
+    }, []);
+
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -168,8 +70,14 @@ const MilaWidget: React.FC<MilaWidgetProps> = ({ context }) => {
         setInputValue('');
         setIsLoading(true);
 
+        let currentUserName = userName;
+        if (step === 'name_capture') {
+            currentUserName = userMsg.text; // Simple capture
+            setUserName(currentUserName);
+            setStep('chat');
+        }
+
         try {
-            // STRICT FIX: Use VITE_DEEPSEEK_API_KEY as requested
             // @ts-ignore
             const apiKey = import.meta.env.VITE_DEEPSEEK_API_KEY;
 
@@ -177,29 +85,57 @@ const MilaWidget: React.FC<MilaWidgetProps> = ({ context }) => {
                 throw new Error("Configuration Error: VITE_DEEPSEEK_API_KEY is missing from .env");
             }
 
-            // Prepare context for AI
+            // INSTRUCTIONS UPDATED FOR MARKDOWN & STRUCTURE
             const systemPrompt = `
-            IDENTITY: You are Mila, the Ecometricus Strategist for all regions (Middle East, LATAM, USA, Europe, ASEAN).
+            IDENTITY: You are Mila, the Ecometricus Strategist for all regions.
             
             === LONG-TERM MEMORY (FACTUAL SOURCE OF TRUTH) ===
             ${KNOWLEDGE_BASE}
             ==================================================
 
             === SESSION CONTEXT (LIVE DASHBOARD VITALS) ===
-            ${JSON.stringify(context, null, 2)}
+            ${JSON.stringify({ ...context, userName: currentUserName }, null, 2)}
             ===============================================
 
             INSTRUCTIONS:
-            1. DATA SOURCE ACKNOWLEDGEMENT: You are analyzing "Daily Migration Data" from the live PMS/POS/CRM feeds. 
-            2. BENCHMARK COMPARISON: Compare the 'Session Context' metrics against the regional benchmarks in your memory (e.g., Middle East 0.35kg Waste vs Europe 0.18kg).
-            3. GSTC 2026 & ESG COMPLIANCE: 
-               - If a user asks about performance, you MUST explain compliance with GSTC 2026 targets and ESG criteria defined in your knowledge base.
-               - Use the chart's current values (Mock Vitals) as the absolute truth for this session.
-            4. DUAL-STREAM LOGIC: You MUST correlate Human Metrics (Staff Engagement, Training Participation) directly to Financial outcomes (Profit Margins, Outlet Sales) and Resource Usage (Water, Energy). 
-               - EXPLAIN: "Low Staff Engagement leads to higher Food Waste (carelessness) -> reducing Profit Margins."
-               - EXPLAIN: "Low Training Participation leads to higher Energy/Water usage (poor equipment use) -> increasing OpEx."
+            1. PERSONA & NAME EXTRACTION:
+               - The 'userName' context provided refers to the user's raw input (e.g., "Hi I am Jane").
+               - YOU must extract the actual name (e.g., "Jane") and use it.
+               - DO NOT echo the full phrase like "It's a pleasure, Hi I am Jane".
+               - FIRST RESPONSE RULE: If this is the greeting, your only job is to acknowledge the person by name and ask a proactive question.
+                 "It's a pleasure, [Name]. Which alert would you like to deep-dive into first?"
+
+            2. STRATEGIC CONSULTANT MODE:
+               - YOU ARE THE AUDITOR. Do not just list data the user can see.
+               - IF asked about "Food Cost" or High-Alerts:
+                 * Provide ONE regional competitive insight (e.g., ASEAN benchmark context).
+                 * Provide ONE actionable human step (e.g., "Re-calibrate scales", "Check buffet waste").
+               - THE KNOWLEDGE BASE IS YOUR SECRET REFERENCE: NEVER copy-paste sections from it. Use it only to calculate and inform.
+
+            3. RESPONSE FORMAT (STRICT MARKDOWN STRUCTURE):
+               - LIMIT: 3-4 concise bullet points MAX per response.
+               - WORD COUNT: < 50 words total.
+               - LAYOUT RULES:
+                 * **Acknowledgement**: Start with 1 sentence.
+                 * **Bullets**: Each insight MUST be a new line with a bullet (*).
+                 * **Spacing**: Add a DOUBLE LINE BREAK between every bullet for readability.
+                 * **Bolding**: BOLD the header of each bullet (e.g., **Root Cause:**, **Action:**).
+               
+               EXAMPLE OUTPUT:
+               "I've analyzed your Food Cost spike against regional data.
+
+               * **Root Cause:** Protein variance exceeds the 2% safety threshold.
+
+               * **Regional Insight:** ASEAN peers average 28% food cost; we are at 32%.
+
+               * **Action:** Re-calibrate kitchen scales immediately to check portioning."
+
+            4. CORE INTELLIGENCE:
+               - ACTIVE ALERTS: 
+                 * KPI Alert: ${context.activeAlerts?.kpi ? "CRITICAL: Food Cost Spike detected." : "None."}
+                 * Sustainability Alert: ${context.activeAlerts?.sustainability ? "CRITICAL: Excessive Waste detected." : "None."}
             
-            Refuse generic advice. Cite the specific numbers from your Memory and the Context.
+            Refuse generic advice. Cite specific numbers from Memory and Context.
             `;
 
             // DEEPSEEK API CALL (Standard OpenAI-compatible fetch)
@@ -298,7 +234,20 @@ const MilaWidget: React.FC<MilaWidgetProps> = ({ context }) => {
                                     ? 'bg-brand-gold/10 border border-brand-gold/30 text-white rounded-br-none'
                                     : 'bg-white/5 border border-white/10 text-gray-200 rounded-bl-none'
                                     }`}>
-                                    {msg.text}
+                                    {msg.sender === 'mila' ? (
+                                        <ReactMarkdown
+                                            components={{
+                                                p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
+                                                strong: ({ node, ...props }) => <span className="font-bold text-brand-gold" {...props} />,
+                                                ul: ({ node, ...props }) => <ul className="list-disc pl-4 space-y-2" {...props} />,
+                                                li: ({ node, ...props }) => <li className="marker:text-brand-gold" {...props} />
+                                            }}
+                                        >
+                                            {msg.text}
+                                        </ReactMarkdown>
+                                    ) : (
+                                        msg.text
+                                    )}
                                 </div>
                             </div>
                         ))}
@@ -321,7 +270,7 @@ const MilaWidget: React.FC<MilaWidgetProps> = ({ context }) => {
                                 value={inputValue}
                                 onChange={(e) => setInputValue(e.target.value)}
                                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                                placeholder="Ask about waste, costs, or targets..."
+                                placeholder={step === 'name_capture' ? "Type your name..." : "Ask about waste, costs, or targets..."}
                                 className="flex-grow bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-brand-gold transition-colors"
                             />
                             <button
