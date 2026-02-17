@@ -7,8 +7,8 @@ interface LogoProps {
 }
 
 const Logo: React.FC<LogoProps> = ({ size = 'md', withLabel = false }) => {
-    const dims = size === 'sm' ? 'w-8 h-8' : size === 'md' ? 'w-10 h-10' : 'w-16 h-16';
-    const textSize = size === 'sm' ? 'text-[6px]' : size === 'md' ? 'text-[8px] sm:text-[10px]' : 'text-xs sm:text-sm';
+    const dims = size === 'sm' ? 'w-12 h-12' : size === 'md' ? 'w-16 h-16' : 'w-24 h-24';
+    const textSize = size === 'sm' ? 'text-[8px]' : size === 'md' ? 'text-[10px] sm:text-xs' : 'text-sm sm:text-base';
 
     return (
         <div className="flex flex-col items-center justify-center">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageSquare, X, Send, Sparkles, User, Loader2, Minimize2, Maximize2 } from 'lucide-react';
+import { MessageSquare, X, Send, Sparkles, User, Loader2, Minimize2, Maximize2, Lightbulb } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 // @ts-ignore
 import KNOWLEDGE_BASE from '../mila.knowledge.txt?raw';
@@ -69,6 +69,16 @@ const MilaWidget: React.FC<MilaWidgetProps> = ({ context }) => {
         setMessages(prev => [...prev, userMsg]);
         setInputValue('');
         setIsLoading(true);
+
+        // GAMIFICATION: Reward for Interaction (Recommendation/Contribution)
+        try {
+            const currentPoints = parseInt(localStorage.getItem('ecometricus_user_points') || '1250');
+            localStorage.setItem('ecometricus_user_points', (currentPoints + 5).toString());
+            // Dispatch event for StaffPortal to pick up
+            window.dispatchEvent(new Event('gamification_update'));
+        } catch (e) {
+            console.error("Gamification sync error", e);
+        }
 
         let currentUserName = userName;
         if (step === 'name_capture') {
@@ -190,10 +200,12 @@ const MilaWidget: React.FC<MilaWidgetProps> = ({ context }) => {
         return (
             <button
                 onClick={() => setIsOpen(true)}
-                className="fixed bottom-8 right-8 z-[100] w-16 h-16 bg-brand-gold rounded-full flex items-center justify-center shadow-[0_4px_20px_rgba(200,164,19,0.5)] hover:scale-110 transition-transform duration-300 group border-2 border-white/20"
+                className="fixed bottom-8 right-8 z-[100] w-16 h-16 bg-[#0f2420] border border-[#39ff14] rounded-full flex items-center justify-center shadow-[0_4px_20px_rgba(0,0,0,0.6)] hover:scale-110 transition-transform duration-300 group"
             >
-                <Sparkles className="text-brand-dark animate-pulse" size={28} />
-                <div className="absolute -top-2 -right-2 w-5 h-5 bg-brand-alert rounded-full border-2 border-brand-dark flex items-center justify-center">
+                {/* "Bright Green color icon... circular outline" */}
+                <div className="absolute inset-0 rounded-full border border-[#39ff14] opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                <Lightbulb className="text-[#39ff14] animate-pulse" size={32} />
+                <div className="absolute -top-1 -right-1 w-5 h-5 bg-brand-alert rounded-full border-2 border-brand-dark flex items-center justify-center">
                     <span className="text-[10px] font-bold text-white">1</span>
                 </div>
             </button>
@@ -206,8 +218,8 @@ const MilaWidget: React.FC<MilaWidgetProps> = ({ context }) => {
             {/* Header */}
             <div className="p-4 bg-brand-dark/50 border-b border-brand-gold/20 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-brand-gold/10 flex items-center justify-center border border-brand-gold">
-                        <Sparkles className="text-brand-gold" size={16} />
+                    <div className="w-8 h-8 rounded-full bg-brand-eco/10 flex items-center justify-center border border-brand-eco">
+                        <Lightbulb className="text-brand-eco" size={16} />
                     </div>
                     <div>
                         <h3 className="text-sm font-black text-white uppercase tracking-wider">Mila AI</h3>

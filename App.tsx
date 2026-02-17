@@ -60,7 +60,7 @@ const App: React.FC = () => {
   };
 
   // Nav is now shown for Admin Dashboard as requested
-  const hideNavigation = currentPage === Page.STAFF_PORTAL || currentPage === Page.SUPERVISOR_DASHBOARD;
+  const hideNavigation = currentPage === Page.STAFF_PORTAL || currentPage === Page.SUPERVISOR_DASHBOARD || currentPage === Page.DASHBOARD;
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-dark text-white font-body selection:bg-brand-gold/30 selection:text-brand-gold">

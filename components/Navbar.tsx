@@ -26,7 +26,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
 
   return (
     <nav className="sticky top-0 z-50 bg-brand-dark/95 backdrop-blur-2xl">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-24 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-32 flex items-center justify-between">
         <div
           className="cursor-pointer group py-2"
           onClick={() => handleNavigate(Page.HOME)}

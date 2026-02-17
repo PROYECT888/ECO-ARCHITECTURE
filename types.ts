@@ -15,8 +15,10 @@ export type UserRole = 'admin' | 'supervisor' | 'chef' | 'manager' | 'basic';
 export type StaffPosition = 'F&B Director' | 'GM' | 'Exec Chef' | 'Manager' | 'Chef Prep' | 'Outlet Manager';
 
 export interface Outlet {
+  id?: string;
   name: string;
   code: string;
+  color_hex?: string;
 }
 
 export interface UserProfile {

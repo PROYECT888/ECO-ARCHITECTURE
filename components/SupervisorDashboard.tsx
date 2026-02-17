@@ -49,6 +49,8 @@ import MilaWidget from './MilaWidget';
 import ReportAlertBox from './ReportAlertBox';
 import ReportAlertBoxKPI from './ReportAlertBoxKPI';
 
+import { supabase } from '../lib/supabase';
+
 interface SupervisorDashboardProps {
   user: UserProfile;
   onLogout: () => void;
@@ -88,14 +90,14 @@ const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, onLogou
   // Operational Benchmarks
   const benchmarks = {
     waste: 100,
-    foodCost: 28.0,
+    foodCost: 30.0,
     laborCost: 28.0,
     profitMargin: 18.0,
     avgSales: 50000
   };
 
-  // Mock Data for Charts
-  const weeklyTrends = [
+  // State for Charts (Hybrid: Mock + Supabase)
+  const [weeklyTrends, setWeeklyTrends] = useState([
     { day: 'Sun', foodCost: 27.5, laborCost: 26, profitMargin: 14.8, sentiment: 4.8 },
     { day: 'Mon', foodCost: 29.2, laborCost: 30, profitMargin: 19.5, sentiment: 4.2 },
     { day: 'Tue', foodCost: 28.1, laborCost: 28, profitMargin: 19.2, sentiment: 4.6 },
@@ -103,8 +105,57 @@ const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, onLogou
     { day: 'Thu', foodCost: 27.8, laborCost: 28, profitMargin: 16.9, sentiment: 4.4 },
     { day: 'Fri', foodCost: 30.5, laborCost: 37, profitMargin: 24.0, sentiment: 4.7 },
     { day: 'Sat', foodCost: 29.8, laborCost: 33, profitMargin: 21.0, sentiment: 4.8 },
-  ];
+  ]);
 
+  // Supabase Data Fetch - Food Cost
+  useEffect(() => {
+    const fetchFoodCost = async () => {
+      // 1. Get Outlet ID for the current user's outlet (or default to Royal if needed for demo)
+      const targetOutletCode = user.outletCode || 'ROY02';
+
+      const { data: outletData } = await supabase
+        .from('outlets')
+        .select('id')
+        .eq('code', targetOutletCode)
+        .single();
+
+      if (!outletData) {
+        console.warn(`Outlet ${targetOutletCode} not found.`);
+        return;
+      }
+
+      const outletId = outletData.id;
+
+      // 2. Fetch Logs for this Outlet AND the Legacy ID to ensure history is shown
+      const LEGACY_ID = '87ce73ab-b490-4b4c-815b-f6b79dcff9c7';
+      const { data, error } = await supabase
+        .from('food_cost_logs')
+        .select('*')
+        .or(`outlet_id.eq.${outletId},outlet_id.eq.${LEGACY_ID}`)
+        .order('created_at', { ascending: true });
+
+      if (data && data.length > 0) {
+        // Map Supabase values to the existing days structure (preserving other mock metrics)
+        setWeeklyTrends(prev => prev.map((item) => {
+          // Find log entry for this day
+          // Note: This matches based on "Sun", "Mon", etc. 
+          // Ideally logs are within the current week. 
+          // If multiple logs exist for "Mon", we take the latest one.
+          const logForDay = data.filter(d =>
+            new Date(d.created_at).toLocaleDateString('en-US', { weekday: 'short' }) === item.day
+          ).pop(); // Take the last one (latest)
+
+          if (logForDay) {
+            return { ...item, foodCost: parseFloat(logForDay.value) };
+          }
+          return item;
+        }));
+      } else {
+        console.log("No Supabase data found, using mock.");
+      }
+    };
+    fetchFoodCost();
+  }, [user.outletCode]);
 
 
   // Specific Data for Sales Stacked Bar Chart
@@ -152,11 +203,14 @@ const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, onLogou
     };
   }, [sessionWasteEntries, sessionResourceEntries, benchmarks.waste]);
 
+  // Calculate stats from dynamic WeeklyTrends
+  const latestFoodCost = weeklyTrends[5].foodCost; // Targeting Friday (Index 5) as per instruction "Friday value is 30.8"
+
   const operationalData = {
     sales: 373225.00,
     profitMargin: 24.5,
     avgCheck: 185.00,
-    foodCost: 28.2,
+    foodCost: latestFoodCost, // Use the fetched Friday value
     laborCost: 15.5,
     customerReview: 4.8,
     ...sessionData
@@ -165,8 +219,8 @@ const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, onLogou
   const impacts = sessionData.impacts;
 
   // REPORT ALERTS LOGIC
-  // 1. KPI Alert: Daily Food Cost > Benchmark
-  const showKpiAlert = operationalData.foodCost > benchmarks.foodCost;
+  // 1. KPI Alert: Daily Food Cost > Benchmark (30.0 logic override)
+  const showKpiAlert = operationalData.foodCost > 30.0;
   // 2. Sustainability Alert: Daily Waste > Benchmark
   const showSustainabilityAlert = operationalData.waste.kg > benchmarks.waste;
 
@@ -268,7 +322,7 @@ const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, onLogou
     <div className="min-h-screen bg-brand-dark flex flex-col font-body selection:bg-brand-gold/20 selection:text-brand-gold antialiased overflow-x-hidden" onClick={() => { setShowTooltip(null); setSelectedFoodCostDay(null); setSelectedLaborCostDay(null); }}>
 
       {/* Header Profile - Linked with Admin Outlet Data */}
-      <header className="sticky top-0 z-50 bg-brand-dark/95 backdrop-blur-xl border-b-2 border-brand-gold/50 h-20 sm:h-24 shrink-0 shadow-lg px-4 sm:px-8">
+      <header className="sticky top-0 z-50 bg-brand-dark/95 backdrop-blur-xl border-b-2 border-brand-gold/50 h-24 sm:h-32 shrink-0 shadow-lg px-4 sm:px-8">
         <div className="max-w-[1920px] mx-auto h-full flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Logo size="md" withLabel />

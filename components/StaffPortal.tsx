@@ -36,6 +36,10 @@ import {
   TrendingDown
 } from 'lucide-react';
 
+import { supabase } from '../lib/supabase';
+import MilaFeedbackWidget from './MilaFeedbackWidget';
+import MilaWidget from './MilaWidget';
+
 interface StaffPortalProps {
   user: UserProfile;
   onLogout: () => void;
@@ -122,12 +126,79 @@ const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {
   // Lists State - Load from LocalStorage for shared session data
   const [wasteEntries, setWasteEntries] = useState<WasteEntry[]>(() => {
     const saved = localStorage.getItem('ecometricus_waste_entries');
-    return saved ? JSON.parse(saved) : [];
+    let entries = saved ? JSON.parse(saved) : [];
+    // SECURITY FILTER: Basic/Chef roles only see their own outlet's data
+    if (user.role === 'basic' || user.role === 'chef') {
+      entries = entries.filter((e: WasteEntry) => e.outletCode === user.outletCode);
+    }
+    return entries;
   });
   const [resourceEntries, setResourceEntries] = useState<ResourceEntry[]>(() => {
     const saved = localStorage.getItem('ecometricus_resource_entries');
+    // Resource entries might not have outletCode yet, but we should filter if possible.
+    // For now, only waste entries have explicit outletCode in the interface defined above.
+    // If resource entries shared logic, we'd filter here too.
     return saved ? JSON.parse(saved) : [];
   });
+
+  // Gamification State
+  const [userPoints, setUserPoints] = useState<number>(() => {
+    return parseInt(localStorage.getItem('ecometricus_user_points') || '1250');
+  });
+  const [userStreak, setUserStreak] = useState<number>(() => {
+    return parseInt(localStorage.getItem('ecometricus_user_streak') || '5');
+  });
+  const [lastActive, setLastActive] = useState<string>(() => {
+    return localStorage.getItem('ecometricus_last_active') || new Date().toDateString();
+  });
+
+  // Persist Gamification State & Listen for External Updates
+  useEffect(() => {
+    localStorage.setItem('ecometricus_user_points', userPoints.toString());
+    localStorage.setItem('ecometricus_user_streak', userStreak.toString());
+    localStorage.setItem('ecometricus_last_active', lastActive);
+  }, [userPoints, userStreak, lastActive]);
+
+  useEffect(() => {
+    const handleExternalUpdate = () => {
+      setUserPoints(parseInt(localStorage.getItem('ecometricus_user_points') || '1250'));
+    };
+    window.addEventListener('gamification_update', handleExternalUpdate);
+    return () => window.removeEventListener('gamification_update', handleExternalUpdate);
+  }, []);
+
+  const handleReward = (type: 'INPUT_ACCURATE' | 'INPUT_ONTIME' | 'ENERGY_MEASURE' | 'STREAK_BONUS' | 'MILA_CONTRIBUTION') => {
+    let pointsToAdd = 0;
+    switch (type) {
+      case 'INPUT_ACCURATE': pointsToAdd = 10; break;
+      case 'INPUT_ONTIME': pointsToAdd = 10; break;
+      case 'ENERGY_MEASURE': pointsToAdd = 10; break;
+      case 'STREAK_BONUS': pointsToAdd = 50; break;
+      case 'MILA_CONTRIBUTION': pointsToAdd = 5; break;
+    }
+    setUserPoints(prev => prev + pointsToAdd);
+
+    // Simple visual feedback (console for now, UI updates automatically)
+    console.log(`🏆 Reward Unlocked: ${type} (+${pointsToAdd} pts)`);
+  };
+
+  const checkStreak = () => {
+    const today = new Date().toDateString();
+    if (lastActive !== today) {
+      // Check if it's consecutive (yesterday)
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      if (lastActive === yesterday.toDateString()) {
+        const newStreak = userStreak + 1;
+        setUserStreak(newStreak);
+        if (newStreak % 5 === 0) handleReward('STREAK_BONUS');
+      } else {
+        setUserStreak(1); // Reset if chain broken
+      }
+      setLastActive(today);
+    }
+  };
 
   // Current Form State
   const [form, setForm] = useState({
@@ -223,7 +294,19 @@ const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {
     if (!form.category || !form.product || !form.amount) return;
     const finalJustification = form.justification === 'Other' ? form.customJustification : form.justification;
 
+    // GAMIFICATION: Check Rewards
+    handleReward('INPUT_ACCURATE'); // Base reward for entry
+
+    // On-Time Logic (Simple Shift Check: 6am-10pm)
+    const hour = new Date().getHours();
+    if (hour >= 6 && hour <= 22) {
+      handleReward('INPUT_ONTIME');
+    }
+
+    checkStreak();
+
     if (editingId) {
+      // ... existing edit logic ...
       setWasteEntries(prev => prev.map(entry =>
         entry.id === editingId
           ? {
@@ -249,8 +332,8 @@ const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {
         unit: unit,
         timestamp: currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         imageUrl: form.imageUrl || PRODUCT_LIBRARY[form.product],
-        staffName: user.fullName, // Added for cross-view auditing
-        outletCode: user.outletCode // Added for cross-view filtering
+        staffName: user.fullName,
+        outletCode: user.outletCode
       };
       setWasteEntries([newEntry, ...wasteEntries]);
       setShowNudge(true);
@@ -280,6 +363,11 @@ const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {
   const handleSaveResource = (type: 'water' | 'energy') => {
     const val = type === 'water' ? form.water : form.energy;
     if (!val) return;
+
+    // GAMIFICATION: Energy Measure Reward
+    handleReward('ENERGY_MEASURE');
+    checkStreak();
+
     if (editingResourceId) {
       setResourceEntries(prev => prev.map(entry =>
         entry.id === editingResourceId ? { ...entry, amount: parseFloat(val) } : entry
@@ -333,6 +421,20 @@ const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {
   const currentJustifications = useMemo(() => {
     return JUSTIFICATION_LOGIC[form.subCategory] || JUSTIFICATION_LOGIC.Default;
   }, [form.subCategory]);
+
+  // Gamification UI Component
+  const contextPoints = (
+    <div className="text-center sm:text-left min-w-[140px]">
+      <span className="block text-[8px] sm:text-[10px] font-black text-gray-600 uppercase tracking-widest mb-1 sm:mb-2">MY SCORE</span>
+      <div className="flex items-center justify-center sm:justify-start gap-2">
+        <span className="text-xl sm:text-2xl lg:text-3xl font-geometric font-black text-brand-gold uppercase tracking-tight">{userPoints}</span>
+        <div className="flex flex-col items-start leading-none">
+          <span className="text-[8px] font-bold text-gray-500 uppercase">Points</span>
+          <span className="text-[8px] font-bold text-brand-eco uppercase">{userStreak} Day Streak 🔥</span>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div
@@ -783,6 +885,8 @@ const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {
               </span>
             </div>
             <div className="h-10 sm:h-12 w-[1.5px] bg-white/10 hidden sm:block" />
+            {contextPoints}
+            <div className="h-10 sm:h-12 w-[1.5px] bg-white/10 hidden sm:block" />
             <div className="text-center sm:text-left min-w-[140px]">
               <span className="block text-[8px] sm:text-[10px] font-black text-gray-600 uppercase tracking-widest mb-1 sm:mb-2">DATA STATUS</span>
               <div className="flex items-center justify-center sm:justify-start gap-2 sm:gap-3">
@@ -839,6 +943,15 @@ const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {
            .font-geometric { letter-spacing: -0.02em; }
         }
       `}} />
+
+      {/* 6. Mila AI Widget (Conditional) */}
+      {(user.role === 'basic' || user.role === 'chef') ? (
+        <MilaFeedbackWidget user={user} />
+      ) : (
+        <div className="fixed bottom-6 right-6 z-50">
+          <MilaWidget context={{ ...totals, benchmarks: BENCHMARKS, user }} />
+        </div>
+      )}
     </div>
   );
 };
