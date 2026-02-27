@@ -15,13 +15,6 @@ View your app in AI Studio: https://ai.studio/apps/drive/1bZpO4Gg5WY8buzGcJ-DjvW
 
 1. Install dependencies:
    `npm install`
-2. Set the `VITE_DEEPSEEK_API_KEY` in [.env](.env) to your DeepSeek API key.
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
-
-## AI Integration (Mila V2)
-
-This project now uses **DeepSeek-V3** via the OpenAI-compatible API.
-- **Engine**: DeepSeek-V3 (`deepseek-chat`)
-- **Knowledge Base**: Hardcoded GSTC 2026 / ESG Criteria.
-- **Live Metrics**: Correlates Daily Migration Data from Dashboard Vitals (Profit, Sales, Waste, etc.).
