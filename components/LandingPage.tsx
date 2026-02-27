@@ -8,12 +8,19 @@ interface LandingPageProps {
 }
 
 const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
+  const [engagementAvg, setEngagementAvg] = React.useState('87');
+
+  React.useEffect(() => {
+    const saved = localStorage.getItem('ecometricus_cumulative_engagement');
+    if (saved) setEngagementAvg(saved);
+  }, []);
+
   const metrics = [
     { value: '5,675', unit: 'kg', label: 'Food Waste Saved', icon: <Leaf className="text-brand-gold" size={32} /> },
     { value: '895', unit: 'Lts', label: 'Water Saved', icon: <Droplets className="text-brand-gold" size={32} /> },
     { value: '13,000', unit: 'kWh', label: 'Energy Reduced', icon: <Zap className="text-brand-gold" size={32} /> },
     { value: '2,890', unit: 'kg', label: 'CO₂ Emissions Avoided', icon: <Globe className="text-brand-gold" size={32} /> },
-    { value: '+87%', unit: '', label: 'Staff Engagement Avg.', icon: <Users className="text-brand-gold" size={32} /> },
+    { value: `+${engagementAvg}%`, unit: '', label: 'Staff Engagement Avg.', icon: <Users className="text-brand-gold" size={32} /> },
   ];
 
   const sdgs = [

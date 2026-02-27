@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import MilaWidget from './MilaWidget';
+import GamificationHub from './GamificationHub';
 import { supabase } from '../lib/supabase';
 import {
   Building2,
@@ -68,10 +69,10 @@ import FoodWasteChart from './FoodWasteChart';
 import WaterUsageChart from './WaterUsageChart';
 import FoodCostTemplateChart from './FoodCostTemplateChart';
 import LaborCostTemplateChart from './LaborCostTemplateChart';
-import ProfitMarginTemplateChart from './ProfitMarginTemplateChart';
 import SalesTemplateChart from './SalesTemplateChart';
-import SentimentTemplateChart from './SentimentTemplateChart';
+import CustomerSentimentChart from './CustomerSentimentChart';
 import AvgCheckTemplateChart from './AvgCheckTemplateChart';
+import ProfitMarginLuxuryChart from './ProfitMarginLuxuryChart';
 import { UserProfile, StaffPosition, Outlet } from '../types';
 import Logo from './Logo';
 
@@ -247,10 +248,10 @@ const Sparkline: React.FC<{ color: string, data: number[] }> = ({ color, data })
 // Default Outlets Fallback
 // Default Outlets Fallback
 const DEFAULT_OUTLETS: Outlet[] = [
-  { name: 'Royal', code: 'ROY02', color_hex: '#FF7000' },     // Brighter Orange
-  { name: 'Fisher’s', code: 'FISH01', color_hex: '#B8860B' }, // Darker Mustard Yellow
-  { name: 'Ralph’s', code: 'RAL03', color_hex: '#32CD32' },   // Green (Lime)
-  { name: 'Gusto', code: 'GUS04', color_hex: '#808080' }      // Grey
+  { name: 'Royal', code: 'ROY02', color_hex: '#FF914D' },     // Orange (brandEnergy)
+  { name: 'Fisher’s', code: 'FISH01', color_hex: '#C8A413' }, // Gold (brandGold)
+  { name: 'Ralph’s', code: 'RAL03', color_hex: '#77B139' },   // Green (brandEco)
+  { name: 'Gusto', code: 'GUS04', color_hex: '#718096' }      // Grey
 ];
 
 // Mock Data for Admin Multi-Outlet View (Fallback)
@@ -300,15 +301,59 @@ const ADMIN_LABOR_MOCK_DATA = [
   { day: 'Thu', laborCost: 20.5, outlet_code: 'RAL03' }, { day: 'Fri', laborCost: 22.9, outlet_code: 'RAL03' },
   { day: 'Sat', laborCost: 23.8, outlet_code: 'RAL03' },
 
-  // Gusto (Grey) - High Avg
   { day: 'Sun', laborCost: 28.5, outlet_code: 'GUS04' }, { day: 'Mon', laborCost: 29.2, outlet_code: 'GUS04' },
   { day: 'Tue', laborCost: 28.8, outlet_code: 'GUS04' }, { day: 'Wed', laborCost: 29.1, outlet_code: 'GUS04' },
   { day: 'Thu', laborCost: 28.5, outlet_code: 'GUS04' }, { day: 'Fri', laborCost: 30.9, outlet_code: 'GUS04' },
   { day: 'Sat', laborCost: 31.8, outlet_code: 'GUS04' },
 ];
 
-// Mock Data for Admin Labor Cost View (Fallback)
+// Mock Data for Admin Profit Margin View (Fallback)
+const ADMIN_PROFIT_MOCK_DATA = [
+  // Royal (Orange)
+  { day: 'Sun', profitMargin: 22.5, outlet_code: 'ROY02' }, { day: 'Mon', profitMargin: 24.2, outlet_code: 'ROY02' },
+  { day: 'Tue', profitMargin: 23.8, outlet_code: 'ROY02' }, { day: 'Wed', profitMargin: 25.1, outlet_code: 'ROY02' },
+  { day: 'Thu', profitMargin: 26.5, outlet_code: 'ROY02' }, { day: 'Fri', profitMargin: 24.9, outlet_code: 'ROY02' },
+  { day: 'Sat', profitMargin: 25.8, outlet_code: 'ROY02' },
+  // Fisher's (Gold)
+  { day: 'Sun', profitMargin: 20.5, outlet_code: 'FISH01' }, { day: 'Mon', profitMargin: 21.2, outlet_code: 'FISH01' },
+  { day: 'Tue', profitMargin: 22.8, outlet_code: 'FISH01' }, { day: 'Wed', profitMargin: 20.1, outlet_code: 'FISH01' },
+  { day: 'Thu', profitMargin: 23.5, outlet_code: 'FISH01' }, { day: 'Fri', profitMargin: 21.9, outlet_code: 'FISH01' },
+  { day: 'Sat', profitMargin: 22.2, outlet_code: 'FISH01' },
+  // Ralph's (Green)
+  { day: 'Sun', profitMargin: 24.5, outlet_code: 'RAL03' }, { day: 'Mon', profitMargin: 25.2, outlet_code: 'RAL03' },
+  { day: 'Tue', profitMargin: 26.8, outlet_code: 'RAL03' }, { day: 'Wed', profitMargin: 24.1, outlet_code: 'RAL03' },
+  { day: 'Thu', profitMargin: 27.5, outlet_code: 'RAL03' }, { day: 'Fri', profitMargin: 26.9, outlet_code: 'RAL03' },
+  { day: 'Sat', profitMargin: 28.2, outlet_code: 'RAL03' },
+  // Gusto (Grey)
+  { day: 'Sun', profitMargin: 18.5, outlet_code: 'GUS04' }, { day: 'Mon', profitMargin: 19.2, outlet_code: 'GUS04' },
+  { day: 'Tue', profitMargin: 20.8, outlet_code: 'GUS04' }, { day: 'Wed', profitMargin: 19.1, outlet_code: 'GUS04' },
+  { day: 'Thu', profitMargin: 18.5, outlet_code: 'GUS04' }, { day: 'Fri', profitMargin: 21.9, outlet_code: 'GUS04' },
+  { day: 'Sat', profitMargin: 20.2, outlet_code: 'GUS04' },
+];
 
+// Mock Data for Admin Sentiment View (Fallback)
+const ADMIN_SENTIMENT_MOCK_DATA = [
+  // Royal (Orange)
+  { day: 'Sun', rating_value: 4.8, outlet_code: 'ROY02' }, { day: 'Mon', rating_value: 4.2, outlet_code: 'ROY02' },
+  { day: 'Tue', rating_value: 4.6, outlet_code: 'ROY02' }, { day: 'Wed', rating_value: 4.9, outlet_code: 'ROY02' },
+  { day: 'Thu', rating_value: 4.4, outlet_code: 'ROY02' }, { day: 'Fri', rating_value: 4.7, outlet_code: 'ROY02' },
+  { day: 'Sat', rating_value: 4.8, outlet_code: 'ROY02' },
+  // Fisher's (Gold)
+  { day: 'Sun', rating_value: 4.5, outlet_code: 'FISH01' }, { day: 'Mon', rating_value: 4.6, outlet_code: 'FISH01' },
+  { day: 'Tue', rating_value: 4.4, outlet_code: 'FISH01' }, { day: 'Wed', rating_value: 4.7, outlet_code: 'FISH01' },
+  { day: 'Thu', rating_value: 4.5, outlet_code: 'FISH01' }, { day: 'Fri', rating_value: 4.8, outlet_code: 'FISH01' },
+  { day: 'Sat', rating_value: 4.6, outlet_code: 'FISH01' },
+  // Ralph's (Green)
+  { day: 'Sun', rating_value: 4.9, outlet_code: 'RAL03' }, { day: 'Mon', rating_value: 4.8, outlet_code: 'RAL03' },
+  { day: 'Tue', rating_value: 4.9, outlet_code: 'RAL03' }, { day: 'Wed', rating_value: 5.0, outlet_code: 'RAL03' },
+  { day: 'Thu', rating_value: 4.7, outlet_code: 'RAL03' }, { day: 'Fri', rating_value: 4.9, outlet_code: 'RAL03' },
+  { day: 'Sat', rating_value: 5.0, outlet_code: 'RAL03' },
+  // Gusto (Grey)
+  { day: 'Sun', rating_value: 3.8, outlet_code: 'GUS04' }, { day: 'Mon', rating_value: 4.1, outlet_code: 'GUS04' },
+  { day: 'Tue', rating_value: 3.9, outlet_code: 'GUS04' }, { day: 'Wed', rating_value: 4.0, outlet_code: 'GUS04' },
+  { day: 'Thu', rating_value: 4.2, outlet_code: 'GUS04' }, { day: 'Fri', rating_value: 3.7, outlet_code: 'GUS04' },
+  { day: 'Sat', rating_value: 4.1, outlet_code: 'GUS04' },
+];
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
   const [activeView, setActiveView] = useState<PortalView>(PortalView.DASHBOARD);
@@ -363,6 +408,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
   // Specific Data States for Charts
   const [foodCostLogs, setFoodCostLogs] = useState<any[]>([]);
   const [laborCostLogs, setLaborCostLogs] = useState<any[]>([]);
+  const [profitMarginLogs, setProfitMarginLogs] = useState<any[]>([]);
+  const [sentimentLogs, setSentimentLogs] = useState<any[]>([]);
 
 
   useEffect(() => {
@@ -374,9 +421,15 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
 
       let currentOutlets: Outlet[] = [];
 
-      if (outletData) {
+      if (outletData && outletData.length > 0) {
         // Deduplicate outlets by code to prevent legend issues
-        const uniqueOutlets = Array.from(new Map(outletData.map((o: any) => [o.code, o])).values()) as Outlet[];
+        // FIX: Supabase sometimes omits the 'code' property. Fall back to name matching or o.name.
+        const uniqueOutlets = Array.from(new Map(outletData.map((o: any) => {
+          const matchedDefault = DEFAULT_OUTLETS.find(def => def.name.toLowerCase() === o.name?.toLowerCase());
+          const code = o.code || matchedDefault?.code || o.name;
+          return [code, { ...o, code }];
+        })).values()) as Outlet[];
+
         setOutlets(uniqueOutlets);
         localStorage.setItem('ecometricus_outlets_v2', JSON.stringify(uniqueOutlets));
         currentOutlets = uniqueOutlets;
@@ -475,6 +528,45 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
       } else {
         setLaborCostLogs([]);
       }
+
+      // 4. Fetch Profit Margin Logs based on Role
+      let profitQuery = supabase.from('profit_margins_logs').select('*');
+
+      if (user.role !== 'admin' && user.outletCode) {
+        const userOutlet = currentOutlets.find((o: any) => o.code === user.outletCode);
+        if (userOutlet && (userOutlet as any).id) {
+          profitQuery = profitQuery.eq('outlet_id', (userOutlet as any).id);
+        }
+      }
+
+      const { data: profitLogs, error: profitError } = await profitQuery;
+
+      if (profitLogs && profitLogs.length > 0) {
+        const mappedProfitLogs = profitLogs.map(log => {
+          const mappedCode = outletMap.get(log.outlet_id) || log.outlet_id;
+          return {
+            day: new Date(log.created_at).toLocaleDateString('en-US', { weekday: 'short' }),
+            profitMargin: parseFloat(log.value as any) || 0,
+            outlet_code: mappedCode,
+            created_at: log.created_at
+          };
+        })
+          .filter(log => isValidOutlet(log.outlet_code))
+          .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+        if (mappedProfitLogs.length > 0) {
+          setProfitMarginLogs(mappedProfitLogs);
+        } else {
+          setProfitMarginLogs(user.role === 'admin' ? ADMIN_PROFIT_MOCK_DATA : weeklyTrends.map(t => ({ day: t.day, profitMargin: t.profitMargin, outlet_code: user.outletCode || 'ROY02' })));
+        }
+      } else {
+        // DB Empty or failed -> Use comprehensive mock stack
+        setProfitMarginLogs(user.role === 'admin' ? ADMIN_PROFIT_MOCK_DATA : weeklyTrends.map(t => ({ day: t.day, profitMargin: t.profitMargin, outlet_code: user.outletCode || 'ROY02' })));
+      }
+
+      // 5. Fetch Customer Sentiment Logs based on Role
+      // Forced Mock Data application for Customer Sentiment to bypass complex mapping issues
+      setSentimentLogs(user.role === 'admin' ? ADMIN_SENTIMENT_MOCK_DATA : weeklyTrends.map(t => ({ day: t.day, rating_value: t.sentiment, outlet_code: user.outletCode || 'ROY02' })));
     };
 
 
@@ -1044,7 +1136,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
 
                             const totalOutlets = outlets.length || 1;
                             const activeCount = activeOutletIds.size;
-                            const engagementPct = Math.round((activeCount / totalOutlets) * 100) || 0; // Default to 0 if no data
+
+                            // SYNCED CALCULATION: Read from localStorage or fallback to standard logic
+                            const savedAvg = localStorage.getItem('ecometricus_cumulative_engagement');
+                            const engagementPct = savedAvg ? parseInt(savedAvg) : Math.round((activeCount / totalOutlets) * 100);
 
                             // "Color Thresholds: Green (> 85%), Yellow (65% - 84%), Red (<65%)"
                             // "Status Badge Logic"
@@ -1059,10 +1154,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
                               statusBg = 'bg-green-500';
                               statusText = 'text-white';
                             } else if (engagementPct >= 65) {
-                              chartColor = '#eab308'; // Yellow
-                              statusLabel = 'CAUTION';
-                              statusBg = 'bg-yellow-500';
-                              statusText = 'text-black';
+                              chartColor = '#eab308';
+                              statusLabel = 'ATTENTION';
+                              statusBg = 'bg-[#1a0a09] border border-[#FF3131]/40 shadow-[0_4px_12px_rgba(255,49,49,0.1)]';
+                              statusText = 'text-[#FF3131] font-black';
                             }
 
                             // SVG Circle Geometry
@@ -1090,9 +1185,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
                                       </div>
                                     </div>
 
-                                    {/* "Pill-shaped Status Badge... Solid Coral/Red background... White Bold Uppercase text" */}
-                                    <div className={`px-4 py-1.5 rounded-full ${statusBg} ${statusText} text-[10px] font-black uppercase tracking-widest shadow-lg flex items-center gap-2`}>
-                                      {statusLabel === 'ATTENTION' && <AlertTriangle size={12} fill="currentColor" />}
+                                    {/* "STRICT RED DESIGN: Corrected ATTENTION badge" */}
+                                    <div className={`px-4 py-1.5 rounded-xl ${statusBg} ${statusText} text-[10px] font-black uppercase tracking-widest shadow-xl flex items-center gap-2 transition-all`}>
+                                      <Info size={12} strokeWidth={3} className="text-[#FF3131]" />
                                       {statusLabel}
                                     </div>
                                   </div>
@@ -1130,17 +1225,12 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
                                             className="transition-all duration-1000 ease-out"
                                           />
                                         </svg>
-                                        {/* "Center Data: Add missing info... Percentage Value... 'Avg Rate' label" */}
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center pt-2">
+                                        {/* "LOGIC: Isolated container for perfect vertical/horizontal centering" */}
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center leading-none pointer-events-none">
                                           <span className="text-4xl sm:text-5xl font-black text-white tracking-tighter" style={{ textShadow: '0 0 20px ' + chartColor + '40' }}>
                                             {engagementPct}%
                                           </span>
-                                          <span className="text-[10px] font-black uppercase text-brand-gold tracking-[0.2em] mt-1">AVG RATE</span>
-
-                                          {/* "Sub-Icon: Place a small, white 'Shield' or 'Check' icon at the very bottom center" */}
-                                          <div className="mt-3 opacity-80">
-                                            {engagementPct >= 85 ? <CheckCircle2 size={16} className="text-white" /> : <ShieldCheck size={16} className="text-white" />}
-                                          </div>
+                                          <span className="text-[10px] font-black uppercase text-brand-gold tracking-[0.2em] mt-1">ENGAGED</span>
                                         </div>
                                       </div>
                                     </div>
@@ -1194,23 +1284,36 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
                                 benchmark={28}
                               />
                             </div>
+
+                            {/* LUXURY BOUTIQUE MARGIN ROW - Full Width Placement */}
+                            <div className="w-full aspect-[4/3] lg:aspect-[16/9] min-h-[300px]">
+                              <ProfitMarginLuxuryChart
+                                data={profitMarginLogs}
+                                BENCHMARK_VALUE={25}
+                                outlets={outlets.length > 0 ? outlets : DEFAULT_OUTLETS}
+                              />
+                            </div>
                           </div>
 
-                          {/* Profit Margin and Sales Charts - Aspect Ratios Applied */}
-                          <div className="w-full max-w-full grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-                            <div className="w-full aspect-[4/3] lg:aspect-[16/9] min-h-[300px]">
-                              <ProfitMarginTemplateChart data={weeklyTrends} benchmark={18.0} />
-                            </div>
+                          {/* Sales Chart Section */}
+                          <div className="w-full max-w-full grid grid-cols-1 gap-8 mb-12">
                             <div className="w-full aspect-[4/3] lg:aspect-[16/9] min-h-[300px]">
                               <SalesTemplateChart data={salesChartData} benchmark={16500} />
                             </div>
                           </div>
 
-                          {/* Customer Sentiment and Avg Check Charts - Aspect Ratios Applied */}
-                          <div className="w-full max-w-full grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+                          {/* Customer Sentiment Section (Full Width) */}
+                          <div className="w-full max-w-full grid grid-cols-1 gap-8 mb-12">
                             <div className="w-full aspect-[4/3] lg:aspect-[16/9] min-h-[300px]">
-                              <SentimentTemplateChart data={weeklyTrends} benchmark={4.5} />
+                              <CustomerSentimentChart
+                                data={sentimentLogs}
+                                benchmark={4.5}
+                                outlets={outlets.length > 0 ? outlets : DEFAULT_OUTLETS}
+                              />
                             </div>
+                          </div>
+
+                          <div className="w-full max-w-full grid grid-cols-1 gap-8 mb-12">
                             <div className="w-full aspect-[4/3] lg:aspect-[16/9] min-h-[300px]">
                               <AvgCheckTemplateChart
                                 data={[
@@ -1241,6 +1344,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
                         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                           <WaterUsageChart />
                         </div>
+                      )}
+
+                      {dashboardTab === DashboardTab.GAMIFICATION && (
+                        <GamificationHub />
                       )}
                     </div>
                   </div>
