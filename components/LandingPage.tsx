@@ -58,11 +58,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
     <div className="w-full">
       {/* Hero Section - Responsive Aspect Ratios: 9:16 (mobile), 4:3 (tablet), 16:9 (desktop) */}
       <section className="relative aspect-[9/16] sm:aspect-[4/3] lg:aspect-video xl:aspect-[21/9] w-full flex items-center overflow-hidden">
-        {/* Background Image: Professional Chef at a Kitchen Prep Table */}
+        {/* Background Image: New uploaded hero kitchen image */}
         <div className="absolute inset-0 z-0">
           <img
-            src="https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&q=80&w=2400"
-            alt="Professional Chef working at a kitchen prep table"
+            src="/assets/hero-kitchen.png"
+            alt="Chefs working at a kitchen prep table under heat lamps"
             className="w-full h-full object-cover opacity-95 brightness-[0.55] contrast-[1.05]"
           />
           {/* Refined Gradient Overlay for contrast while maintaining brightness */}
