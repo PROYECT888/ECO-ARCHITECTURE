@@ -105,11 +105,12 @@ const ProfitMarginLuxuryChart: React.FC<ProfitMarginLuxuryChartProps> = ({ data,
                     </div>
                 </div>
 
+                {/* Attention Icon - Dynamic Logic */}
                 {hasAlert && (
                     <div className="animate-in fade-in zoom-in duration-300">
-                        <div className="bg-brand-alert/10 border border-brand-alert/30 px-4 py-2 rounded-lg flex items-center gap-2 shadow-[0_0_10px_rgba(255,49,49,0.1)] cursor-pointer group/alert">
-                            <Info size={14} className="text-brand-alert" />
-                            <span className="text-xs font-black text-brand-gold uppercase tracking-widest group-hover/alert:underline">Attention Required</span>
+                        <div className="bg-brand-alert/10 border border-brand-alert/30 px-3 py-1.5 rounded-lg flex items-center gap-2 shadow-[0_0_10px_rgba(255,49,49,0.1)] cursor-pointer group/alert">
+                            <Info size={12} className="text-brand-alert" />
+                            <span className="text-[9px] font-black text-brand-alert uppercase tracking-widest group-hover/alert:underline">Attention</span>
                         </div>
                     </div>
                 )}
