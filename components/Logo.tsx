@@ -2,21 +2,24 @@
 import React from 'react';
 
 interface LogoProps {
-    size?: 'sm' | 'md' | 'lg';
+    size?: 'sm' | 'md' | 'lg' | 'xl';
     withLabel?: boolean;
 }
 
 const Logo: React.FC<LogoProps> = ({ size = 'md', withLabel = false }) => {
-    const dims = size === 'sm' ? 'w-12 h-12' : size === 'md' ? 'w-16 h-16' : 'w-24 h-24';
-    const textSize = size === 'sm' ? 'text-[8px]' : size === 'md' ? 'text-[10px] sm:text-xs' : 'text-sm sm:text-base';
+    // scale up for 'xl' specifically for large footer presence
+    const dims = size === 'sm' ? 'w-10 h-10' : size === 'md' ? 'w-14 h-14' : size === 'lg' ? 'w-20 h-20' : 'w-32 h-32 md:w-40 md:h-40';
+
+    // Slightly reduced font sizes so the icon is noticeably larger than the text
+    const textSize = size === 'sm' ? 'text-sm' : size === 'md' ? 'text-lg sm:text-xl pt-0.5' : size === 'lg' ? 'text-2xl sm:text-3xl pt-0.5' : 'text-4xl sm:text-5xl pt-1';
 
     return (
-        <div className="flex flex-col items-center justify-center">
+        <div className="flex flex-row items-center gap-3">
             <div className={`${dims} relative flex items-center justify-center`}>
                 <img src="/logo.png" alt="Ecometricus Logo" className="w-full h-full object-contain" />
             </div>
             {withLabel && (
-                <span className={`font-geometric font-bold tracking-widest text-brand-gold uppercase mt-0.5 leading-none ${textSize}`}>
+                <span className={`font-geometric font-black tracking-widest text-brand-gold uppercase leading-none ${textSize}`}>
                     ECOMETRICUS
                 </span>
             )}
