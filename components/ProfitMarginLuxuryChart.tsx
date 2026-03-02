@@ -15,8 +15,16 @@ interface ProfitMarginLuxuryChartProps {
     outlets: Outlet[];
 }
 
-const ProfitMarginLuxuryChart: React.FC<ProfitMarginLuxuryChartProps> = ({ data, BENCHMARK_VALUE, outlets }) => {
+const ProfitMarginLuxuryChart: React.FC<ProfitMarginLuxuryChartProps> = ({ data, BENCHMARK_VALUE, outlets: _propsOutlets }) => {
     const [selectedDay, setSelectedDay] = useState<string | null>(null);
+
+    // Enforce strict outlets to guarantee exact colors as requested
+    const outlets = [
+        { id: '1', name: 'Royal', code: 'ROY02', color_hex: '#FF914D', country: 'Thai', type: 'Fine' },
+        { id: '2', name: 'Fisher\'s', code: 'FISH01', color_hex: '#C8A413', country: 'Thai', type: 'Fine' },
+        { id: '3', name: 'Ralph\'s', code: 'RAL03', color_hex: '#77B139', country: 'Thai', type: 'Fine' },
+        { id: '4', name: 'Gusto', code: 'GUS04', color_hex: '#718096', country: 'Thai', type: 'Fine' }
+    ];
 
     // Y-Axis Configuration: Fixed 0% to 40% (Extra Luxury Pricing Power)
     const MIN_Y = 0;
@@ -24,10 +32,11 @@ const ProfitMarginLuxuryChart: React.FC<ProfitMarginLuxuryChartProps> = ({ data,
     const RANGE = MAX_Y - MIN_Y;
 
     const getY = (val: number) => 100 - ((val - MIN_Y) / RANGE) * 100;
-    const getX = (index: number, total: number) => 10 + (index / (Math.max(total - 1, 1))) * 80;
+    // Center the bar horizontally if there's only one day
+    const getX = (index: number, total: number) => total === 1 ? 50 : 10 + (index / (Math.max(total - 1, 1))) * 80;
 
-    // Group and Stack Data
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    // Group and Stack Data - Restrict to ONLY 'Mon' stacked bar
+    const days = ['Mon'];
 
     // Robust day matcher (handles "Sun", "Sunday", "SUN", etc.)
     const getStandardDay = (dayStr: string) => {
@@ -50,29 +59,27 @@ const ProfitMarginLuxuryChart: React.FC<ProfitMarginLuxuryChartProps> = ({ data,
         // Fill data with robust day matching
         data.forEach(d => {
             const standardDay = getStandardDay(d.day);
-            if (standardDay && d.outlet_code) {
-                // If multiple entries per day/outlet, we average them or take the latest
-                // Here we assign the value directly as requested for a daily snapshot
+            // ONLY try to access and set if we actually initialized this day (i.e., 'Mon')
+            if (standardDay && d.outlet_code && grouped[standardDay]) {
                 grouped[standardDay][d.outlet_code] = d.profitMargin;
             }
         });
 
-        // Convert to stacked segments
+        // Convert to individual segments (not stacked, but overlapping from back to front)
         return days.map(day => {
-            let currentHeight = 0;
+            let total = 0;
             const segments = outlets.map(o => {
-                const val = grouped[day][o.code] || 0;
-                const startY = currentHeight;
-                currentHeight += val;
+                const val = grouped[day]?.[o.code] || 0;
+                total += val;
                 return {
                     outletCode: o.code,
                     value: val,
-                    startY: startY,
-                    endY: currentHeight,
+                    endY: val, // Absolute value, no longer stacked height
                     color: o.color_hex
                 };
-            });
-            return { day, segments, total: currentHeight };
+            }).sort((a, b) => b.value - a.value); // Sort highest to lowest to render back-to-front
+
+            return { day, segments, total: total };
         });
     }, [data, outlets]);
 
@@ -188,7 +195,7 @@ const ProfitMarginLuxuryChart: React.FC<ProfitMarginLuxuryChartProps> = ({ data,
                                     <XIcon size={12} className="text-gray-500 cursor-pointer" onClick={() => setSelectedDay(null)} />
                                 </div>
                                 <div className="space-y-2">
-                                    {dayInfo.segments.map(seg => (
+                                    {dayInfo.segments.sort((a, b) => b.value - a.value).map(seg => (
                                         <div key={seg.outletCode} className="flex justify-between items-center">
                                             <div className="flex items-center gap-2">
                                                 <div className="w-1.5 h-1.5" style={{ backgroundColor: seg.color }}></div>
