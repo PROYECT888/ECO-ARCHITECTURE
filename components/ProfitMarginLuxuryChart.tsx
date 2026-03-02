@@ -35,8 +35,8 @@ const ProfitMarginLuxuryChart: React.FC<ProfitMarginLuxuryChartProps> = ({ data,
     // Center the bar horizontally if there's only one day
     const getX = (index: number, total: number) => total === 1 ? 50 : 10 + (index / (Math.max(total - 1, 1))) * 80;
 
-    // Group and Stack Data - Restrict to ONLY 'Mon' stacked bar
-    const days = ['Mon'];
+    // Group and Stack Data - Full Week Restored
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
     // Robust day matcher (handles "Sun", "Sunday", "SUN", etc.)
     const getStandardDay = (dayStr: string) => {
