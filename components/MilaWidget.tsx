@@ -89,7 +89,7 @@ const MilaWidget: React.FC<MilaWidgetProps> = ({ context }) => {
 
         try {
             // @ts-ignore
-            const apiKey = import.meta.env.VITE_DEEPSEEK_API_KEY;
+            const apiKey = import.meta.env.VITE_DEEPSEEK_API_KEY || "sk-0a92323227144880af7b3a250fbfbe42";
 
             if (!apiKey) {
                 throw new Error("Configuration Error: VITE_DEEPSEEK_API_KEY is missing from .env");
