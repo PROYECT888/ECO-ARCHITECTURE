@@ -32,20 +32,15 @@ const App: React.FC = () => {
   };
 
   const handleLogout = () => {
-    // PREVENT MEMORY LEAKS ON ROLE SWITCHING:
-    // Clear all the heavy JSON mock arrays & local session storage 
-    // to keep the app highly responsive during rapid testing.
-    Object.keys(localStorage).forEach(key => {
-      if (key.startsWith('ecometricus_') && key !== 'ecometricus_user_points') {
-        localStorage.removeItem(key);
-      }
-    });
+    // Reverting aggressive cleanup:
+    // Allow 'ecometricus_' variables to persist through logout 
+    // so Jack the Chef's data appears for Jane the Manager.
 
     setCurrentUser(null);
     setCurrentPage(Page.SIGN_IN);
 
-    // Hard refresh to completely sever the React memory tree
-    window.location.reload();
+    // A soft reset back to sign in
+    window.scrollTo(0, 0);
   };
 
   const renderPage = () => {
