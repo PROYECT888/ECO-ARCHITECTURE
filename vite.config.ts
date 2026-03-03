@@ -22,3 +22,4 @@ export default defineConfig(({ mode }) => {
     }
   };
 });
+// Trigger Vite dev server restart to pick up latest .env changes
