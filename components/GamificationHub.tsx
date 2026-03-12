@@ -54,15 +54,24 @@ const GamificationHub: React.FC = () => {
                 .select('*')
                 .order('total_points', { ascending: false });
 
-            if (oData) {
+            if (oData && oData.length > 0) {
                 const fetchedOutlets = oData.slice(0, 4);
                 setOutlets(fetchedOutlets);
 
                 // Calculate Cumulative Average for Global Sync (Avg of 4 outlets)
-                if (fetchedOutlets.length > 0) {
-                    const avg = Math.round(fetchedOutlets.reduce((sum: number, o: any) => sum + o.engagement_pct, 0) / fetchedOutlets.length);
-                    localStorage.setItem('ecometricus_cumulative_engagement', avg.toString());
-                }
+                const avg = Math.round(fetchedOutlets.reduce((sum: number, o: any) => sum + o.engagement_pct, 0) / fetchedOutlets.length);
+                localStorage.setItem('ecometricus_cumulative_engagement', avg.toString());
+            } else {
+                // Fallback Mock Data
+                const mockOutlets: OutletData[] = [
+                    { id: '1', name: 'Royal', outlet_color: '#ff5722', total_points: 2580, engagement_pct: 86 },
+                    { id: '2', name: 'Gusto', outlet_color: '#94a3b8', total_points: 2430, engagement_pct: 81 },
+                    { id: '3', name: "Fisher's", outlet_color: '#eab308', total_points: 2220, engagement_pct: 74 },
+                    { id: '4', name: "Ralph's", outlet_color: '#22c55e', total_points: 2040, engagement_pct: 68 },
+                ];
+                setOutlets(mockOutlets);
+                const avg = Math.round(mockOutlets.reduce((sum, o) => sum + o.engagement_pct, 0) / mockOutlets.length);
+                localStorage.setItem('ecometricus_cumulative_engagement', avg.toString());
             }
 
             // 2. Leaderboard - ROBUST FETCH STRATEGY
