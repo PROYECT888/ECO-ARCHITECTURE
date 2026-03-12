@@ -1,4 +1,11 @@
 {
+    "redirects": [
+        {
+            "source": "/",
+            "destination": "/MVP",
+            "permanent": false
+        }
+    ],
     "rewrites": [
         {
             "source": "/MVP(.*)",
