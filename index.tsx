@@ -13,7 +13,8 @@ const root = ReactDOM.createRoot(rootElement);
 
 // Simple path-based routing for MVP restriction
 const currentPath = window.location.pathname;
-const isMVP = currentPath === '/MVP' || currentPath.startsWith('/MVP/');
+const isDev = import.meta.env.DEV;
+const isMVP = isDev || currentPath === '/MVP' || currentPath.startsWith('/MVP/');
 
 root.render(
   <React.StrictMode>

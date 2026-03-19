@@ -111,9 +111,27 @@ const JUSTIFICATION_LOGIC: Record<string, string[]> = {
 };
 
 const PRODUCT_LIBRARY: Record<string, string> = {
-  'Tomatoes': 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&q=80&w=200',
-  'Beef Trim': 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=200',
-  'Frying Oil': 'https://images.unsplash.com/photo-1474979266404-7eaacbadcbaf?auto=format&fit=crop&q=80&w=200'
+  'Bacon': '/images/raw_prep/raw_bacon.png',
+  'Mussels': '/images/raw_prep/raw_mussels.png',
+  'Sausage': '/images/raw_prep/raw_sausage.png',
+  'Chicken bones': '/images/raw_prep/chicken_bones.png',
+  'Onions': '/images/raw_prep/raw_onions.png',
+  'Carrots': '/images/raw_prep/raw_carrots.png',
+  'Potato salad': '/images/raw_prep/potato_salad.png',
+  'Assorted pastries': '/images/raw_prep/raw_pastries.png',
+  'Beef scraps': '/images/raw_prep/beef_scraps.png',
+  'Pork fat': '/images/raw_prep/pork_fat.png',
+  'Whole fish': '/images/raw_prep/whole_fish.png',
+  'Beef Trim': '/images/raw_prep/beef_trim.png',
+  'Tomatoes': '/images/raw_prep/tomatoes.png',
+  'Beans': '/images/raw_prep/beans.png',
+  'Tomato Paste': '/images/raw_prep/large_can_10.png',
+  'Olives': '/images/raw_prep/large_can_10.png',
+  'Food Scraps': '/images/raw_prep/food_scraps.png',
+  'Starch Side': '/images/raw_prep/food_scraps.png',
+  'Protein Remnants': '/images/raw_prep/food_scraps.png',
+  'Veg Garnish': '/images/raw_prep/food_scraps.png',
+  'Milk': 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&q=80&w=600'
 };
 
 const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {

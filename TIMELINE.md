@@ -1,6 +1,14 @@
 # Project Timeline & Backup Log
 
-## 2026-02-17 17:05:00 (Latest Backup)
+## 2026-03-19 (Latest Update)
+### Prep Chef Daily Input & Local Development Updates
+- **Local Development Bypass**: 
+  - Modified `index.tsx` to automatically bypass the "Under Construction" presentation shell locally, allowing immediate access to the MVP during development while preserving the shell in production.
+- **Visual Verification Library Enhancement**: 
+  - Replaced generic lifestyle Unsplash URLs with 12 custom, hyper-realistic wholesale prep ingredient images (added to public folder) for precise visual verification in `StaffPortal.tsx`.
+  - Added targeted support for Food Scraps, Canned Goods, Produce, and Raw Meat items.
+
+## 2026-02-17 17:05:00 (Previous Backup)
 ### Supervisor Dashboard Fixes & Refinements
 - **Data Restoration (Critical)**: 
   - Identified improper data mapping where `SupervisorDashboard.tsx` was only querying for the new dynamic `outlet_id`.
