@@ -115,12 +115,18 @@ const PRODUCT_LIBRARY: Record<string, string> = {
   'Mussels': '/images/raw_prep/raw_mussels.png',
   'Sausage': '/images/raw_prep/raw_sausage.png',
   'Chicken bones': '/images/raw_prep/chicken_bones.png',
+  'Chicken Bones': '/images/raw_prep/chicken_bones.png',
   'Onions': '/images/raw_prep/raw_onions.png',
   'Carrots': '/images/raw_prep/raw_carrots.png',
+  'Potato Salad': '/images/raw_prep/potato_salad.png',
   'Potato salad': '/images/raw_prep/potato_salad.png',
+  'Pastries': '/images/raw_prep/raw_pastries.png',
   'Assorted pastries': '/images/raw_prep/raw_pastries.png',
+  'Beef Scraps': '/images/raw_prep/beef_scraps.png',
   'Beef scraps': '/images/raw_prep/beef_scraps.png',
+  'Pork Fat': '/images/raw_prep/pork_fat.png',
   'Pork fat': '/images/raw_prep/pork_fat.png',
+  'Whole Fish': '/images/raw_prep/whole_fish.png',
   'Whole fish': '/images/raw_prep/whole_fish.png',
   'Beef Trim': '/images/raw_prep/beef_trim.png',
   'Tomatoes': '/images/raw_prep/tomatoes.png',
@@ -128,6 +134,7 @@ const PRODUCT_LIBRARY: Record<string, string> = {
   'Tomato Paste': '/images/raw_prep/large_can_10.png',
   'Olives': '/images/raw_prep/large_can_10.png',
   'Food Scraps': '/images/raw_prep/food_scraps.png',
+  'Plate Scraps': '/images/raw_prep/food_scraps.png',
   'Starch Side': '/images/raw_prep/food_scraps.png',
   'Protein Remnants': '/images/raw_prep/food_scraps.png',
   'Veg Garnish': '/images/raw_prep/food_scraps.png',
@@ -349,7 +356,7 @@ const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {
         amount: parseFloat(form.amount),
         unit: unit,
         timestamp: currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        imageUrl: form.imageUrl || PRODUCT_LIBRARY[form.product],
+        imageUrl: form.imageUrl || PRODUCT_LIBRARY[form.product] || PRODUCT_LIBRARY[form.subCategory],
         staffName: user.fullName,
         outletCode: user.outletCode
       };
@@ -610,9 +617,9 @@ const StaffPortal: React.FC<StaffPortalProps> = ({ user, onLogout }) => {
                       <Tooltip id="mila" text="Mila AI automatically matches captured photos with selected product description." />
                     </div>
                     <div className="aspect-video bg-brand-dark/40 border-2 border-dashed border-white/10 rounded-[24px] sm:rounded-[30px] lg:rounded-[40px] flex items-center justify-center relative overflow-hidden group cursor-pointer hover:border-brand-gold/50 transition-all shadow-inner">
-                      {PRODUCT_LIBRARY[form.product] ? (
+                      {PRODUCT_LIBRARY[form.product] || PRODUCT_LIBRARY[form.subCategory] ? (
                         <div className="w-full h-full relative">
-                          <img src={PRODUCT_LIBRARY[form.product]} className="w-full h-full object-cover" alt="Verification" />
+                          <img src={PRODUCT_LIBRARY[form.product] || PRODUCT_LIBRARY[form.subCategory]} className="w-full h-full object-cover" alt="Verification" />
                           <div className="absolute inset-0 bg-brand-dark/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                             <span className="bg-brand-eco text-brand-dark px-6 py-2 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-widest shadow-2xl">MILA AI MATCH: 98%</span>
                           </div>
