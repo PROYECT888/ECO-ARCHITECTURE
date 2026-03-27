@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Page, UserProfile } from './types';
 import Navbar from './components/Navbar';
 import LandingPage from './components/LandingPage';
+import UnderConstruction from './components/UnderConstruction';
 import AboutPage from './components/AboutPage';
 import FAQPage from './components/FAQPage';
 import AuthPage from './components/AuthPage';
@@ -46,7 +47,7 @@ const App: React.FC = () => {
   const renderPage = () => {
     switch (currentPage) {
       case Page.HOME:
-        return <LandingPage onNavigate={setCurrentPage} />;
+        return <UnderConstruction />;
       case Page.ABOUT:
         return <AboutPage />;
       case Page.FAQ:
@@ -67,7 +68,7 @@ const App: React.FC = () => {
   };
 
   // Nav is now shown for Admin Dashboard as requested
-  const hideNavigation = currentPage === Page.STAFF_PORTAL || currentPage === Page.SUPERVISOR_DASHBOARD || currentPage === Page.DASHBOARD;
+  const hideNavigation = currentPage === Page.STAFF_PORTAL || currentPage === Page.SUPERVISOR_DASHBOARD || currentPage === Page.DASHBOARD || currentPage === Page.HOME;
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-dark text-white font-body selection:bg-brand-gold/30 selection:text-brand-gold">
