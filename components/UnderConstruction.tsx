@@ -16,22 +16,34 @@ const UnderConstruction: React.FC = () => {
                 <div className="h-px w-32 bg-[#C8A413]/30 mx-auto my-6"></div>
 
                 <h2 className="text-xl md:text-2xl font-geometric font-black text-white/90 tracking-widest uppercase">
-                    Under Construction
+                    You're Getting Early Access to Something Exciting and New
                 </h2>
 
-                <p className="text-sm md:text-base font-body text-white/60 max-w-md mx-auto mt-4 tracking-wide leading-relaxed">
-                    We are currently building the next generation of luxury F&B sustainability intelligence. Please check back soon.
-                </p>
+                <div className="max-w-xl mx-auto space-y-4">
+                    <p className="text-sm md:text-base font-body text-white/70 tracking-wide leading-relaxed">
+                        Ecometricus is the premier sustainability intelligence platform designed for F&B operations that care about profit, saves AND the planet. We empower you to measure, optimize, and report on ESG metrics that drive operational profit and elevate your brand.
+                    </p>
+                    
+                    <div className="bg-[#1a3833] border border-[#22c55e]/40 rounded-xl p-6 mt-6 shadow-lg">
+                        <p className="text-sm md:text-base font-body text-white/90 tracking-wide leading-relaxed mb-4">
+                            This 5-minute assessment shows where your F&B operation stands. Plus, see if you qualify for our freemium launch.
+                        </p>
+                        
+                        <div className="flex justify-center mb-6">
+                            <span className="inline-block px-3 py-1 bg-[#C8A413]/20 text-[#C8A413] border border-[#C8A413]/50 rounded-full text-xs font-bold uppercase tracking-widest">
+                                Only 10 Spots Available
+                            </span>
+                        </div>
 
-                <div className="pt-6">
-                    <a 
-                        href="https://tally.so/r/aQ0ZOZ" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="inline-block px-8 py-4 bg-[#22c55e] hover:bg-[#16a34a] text-white font-geometric font-bold tracking-wide uppercase text-sm md:text-base rounded-full transition-all duration-300 shadow-[0_4px_14px_0_rgba(34,197,94,0.39)] hover:shadow-[0_6px_20px_rgba(34,197,94,0.23)] hover:-translate-y-0.5"
-                    >
-                        Test your F&B Sustainability Knowledge here
-                    </a>
+                        <a 
+                            href="https://tally.so/r/aQ0ZOZ" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-block w-full md:w-auto px-8 py-4 bg-[#22c55e] hover:bg-[#16a34a] text-white font-geometric font-bold tracking-wide uppercase text-sm md:text-base rounded-full transition-all duration-300 shadow-[0_4px_14px_0_rgba(34,197,94,0.39)] hover:shadow-[0_6px_20px_rgba(34,197,94,0.23)] hover:-translate-y-0.5"
+                        >
+                            Test your F&B Sustainability Knowledge here
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
