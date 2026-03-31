@@ -44,7 +44,32 @@ const UnderConstruction: React.FC = () => {
                             Test your F&B Sustainability Knowledge here
                         </a>
                     </div>
+
+                    {/* Failsafe Manual Bypass Button (Only visible on /MVP path) */}
+                    {(typeof window !== 'undefined' && /mvp/i.test(window.location.pathname)) && (
+                        <div className="pt-8 border-t border-white/5 animate-bounce">
+                            <button 
+                                onClick={() => {
+                                    sessionStorage.setItem('ecometricus_mvp_bypass', 'true');
+                                    window.location.href = '/mvp';
+                                }}
+                                className="group relative px-10 py-5 bg-brand-gold hover:bg-brand-gold/90 text-brand-dark font-black tracking-widest uppercase text-xs rounded-full transition-all shadow-[0_0_30px_rgba(212,175,55,0.3)]"
+                            >
+                                <span className="relative z-10 flex items-center gap-3">
+                                    Click Here to Enter MVP Portal
+                                    <div className="w-5 h-5 rounded-full border-2 border-brand-dark/30 border-t-brand-dark animate-spin"></div>
+                                </span>
+                            </button>
+                            <p className="mt-4 text-[9px] font-black uppercase tracking-[0.3em] text-brand-gold animate-pulse">
+                                Authorized Test Access Path Detected
+                            </p>
+                        </div>
+                    )}
                 </div>
+                
+                <p className="mt-8 text-[8px] font-black uppercase tracking-[0.4em] text-white/10 text-center">
+                    Build: V2.0-SYNC-MVP
+                </p>
             </div>
         </div>
     );

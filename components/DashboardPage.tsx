@@ -73,6 +73,7 @@ import SalesTemplateChart from './SalesTemplateChart';
 import CustomerSentimentChart from './CustomerSentimentChart';
 import AvgCheckTemplateChart from './AvgCheckTemplateChart';
 import ProfitMarginLuxuryChart from './ProfitMarginLuxuryChart';
+import FoodWasteIntelligence from './FoodWasteIntelligence';
 import { UserProfile, StaffPosition, Outlet } from '../types';
 import Logo from './Logo';
 
@@ -598,6 +599,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
     benchmarkRegion: 'ASEAN Luxury Hotels',
     selectedManualOutlet: '',
     alertsActive: true,
+    financial_cap: 1000,
     milaLogic: true,
     posApiKey: '',
     crmApiKey: '',
@@ -1336,7 +1338,15 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
 
                       {dashboardTab === DashboardTab.FOOD_WASTE && (
                         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                          <FoodWasteChart />
+                          <FoodWasteIntelligence 
+                            outletId={user.role === 'admin' ? null : (outlets.find(o => o.code === user.outletCode) as any)?.id || null}
+                            unitType={params.wasteUnit as 'kg' | 'Lbs'}
+                            allOutlets={outlets}
+                            benchmarks={{
+                              food_waste_target_kg: effectiveParams.wasteTarget,
+                              financial_cap: (effectiveParams as any).financial_cap || 1000
+                            }}
+                          />
                         </div>
                       )}
 

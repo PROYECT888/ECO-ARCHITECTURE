@@ -13,6 +13,20 @@ import SupervisorDashboard from './components/SupervisorDashboard';
 import Footer from './components/Footer';
 
 const App: React.FC = () => {
+  const isDev = (import.meta as any).env?.DEV;
+  
+  // 🛡️ Ironclad MVP Path Bypass (Top-Level Constant for Immediate Detection)
+  const isMVPPath = typeof window !== 'undefined' && (
+                    /mvp/i.test(window.location.pathname) || 
+                    /mvp/i.test(window.location.hash) || 
+                    /mvp/i.test(window.location.search) ||
+                    sessionStorage.getItem('ecometricus_mvp_bypass') === 'true');
+
+  // Persistence: Once unlocked by URL, keep unlocked for session
+  if (typeof window !== 'undefined' && !sessionStorage.getItem('ecometricus_mvp_bypass') && isMVPPath) {
+    sessionStorage.setItem('ecometricus_mvp_bypass', 'true');
+  }
+
   const [currentPage, setCurrentPage] = useState<Page>(Page.HOME);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
 
@@ -47,7 +61,9 @@ const App: React.FC = () => {
   const renderPage = () => {
     switch (currentPage) {
       case Page.HOME:
-        return <UnderConstruction />;
+        // Show real app if on localhost, or if using the /MVP bypass path (url or session flag).
+        // Otherwise, show the Under Construction shield on production.
+        return (isDev || isMVPPath) ? <LandingPage onNavigate={setCurrentPage} /> : <UnderConstruction />;
       case Page.ABOUT:
         return <AboutPage />;
       case Page.FAQ:
@@ -67,8 +83,11 @@ const App: React.FC = () => {
     }
   };
 
-  // Nav is now shown for Admin Dashboard as requested
-  const hideNavigation = currentPage === Page.STAFF_PORTAL || currentPage === Page.SUPERVISOR_DASHBOARD || currentPage === Page.DASHBOARD || currentPage === Page.HOME;
+  // Nav is hidden for portals; for HOME, only hide it if we are showing UnderConstruction (non-dev)
+  const hideNavigation = currentPage === Page.STAFF_PORTAL || 
+                        currentPage === Page.SUPERVISOR_DASHBOARD || 
+                        currentPage === Page.DASHBOARD || 
+                        (currentPage === Page.HOME && !isDev && !isMVPPath);
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-dark text-white font-body selection:bg-brand-gold/30 selection:text-brand-gold">

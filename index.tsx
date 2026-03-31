@@ -1,8 +1,6 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import UnderConstruction from './components/UnderConstruction';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -11,13 +9,8 @@ if (!rootElement) {
 
 const root = ReactDOM.createRoot(rootElement);
 
-// Simple path-based routing for MVP restriction
-const currentPath = window.location.pathname;
-const isDev = import.meta.env.DEV;
-const isMVP = isDev || currentPath === '/MVP' || currentPath.startsWith('/MVP/');
-
 root.render(
   <React.StrictMode>
-    {isMVP ? <App /> : <UnderConstruction />}
+    <App />
   </React.StrictMode>
 );
