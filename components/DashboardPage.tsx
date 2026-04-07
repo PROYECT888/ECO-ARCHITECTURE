@@ -23,6 +23,7 @@ import {
   X,
   Check,
   Cpu,
+  Loader2,
   Trophy,
   LayoutDashboard,
   Zap,
@@ -74,12 +75,15 @@ import CustomerSentimentChart from './CustomerSentimentChart';
 import AvgCheckTemplateChart from './AvgCheckTemplateChart';
 import ProfitMarginLuxuryChart from './ProfitMarginLuxuryChart';
 import FoodWasteIntelligence from './FoodWasteIntelligence';
+import ResourceIntelligence from './ResourceIntelligence';
+import LegalConsentModal from './LegalConsentModal';
 import { UserProfile, StaffPosition, Outlet } from '../types';
 import Logo from './Logo';
 
 interface DashboardPageProps {
   user: UserProfile;
   onLogout: () => void;
+  onUpdateUser: (updatedFields: Partial<UserProfile>) => void;
 }
 
 // Define brand color constants for visualizations
@@ -356,11 +360,11 @@ const ADMIN_SENTIMENT_MOCK_DATA = [
   { day: 'Sat', rating_value: 4.1, outlet_code: 'GUS04' },
 ];
 
-const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
+const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout, onUpdateUser }) => {
   const [activeView, setActiveView] = useState<PortalView>(PortalView.DASHBOARD);
   const [dashboardTab, setDashboardTab] = useState<DashboardTab>(DashboardTab.SUMMARIZED);
-  // (Assuming other state init is here...)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success'>('idle');
+  const [isHydrating, setIsHydrating] = useState(true);
   const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
   const [isPermDropdownOpen, setIsPermDropdownOpen] = useState(false);
   const permRef = useRef<HTMLDivElement>(null);
@@ -396,11 +400,12 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
   const [sequenceCounter, setSequenceCounter] = useState(2);
 
   const [company, setCompany] = useState({
-    name: 'Grand Hyatt Regency',
+    name: '',
+    company_name: '',
     region: 'Asia',
     country: 'Thailand',
     city: 'Bangkok',
-    adminPhone: '+66 8 987 6543',
+    adminPhone: '',
     currentOutletName: '',
     currentOutletCode: 'XXXX00',
     smsNotifications: true
@@ -411,75 +416,178 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
   const [laborCostLogs, setLaborCostLogs] = useState<any[]>([]);
   const [profitMarginLogs, setProfitMarginLogs] = useState<any[]>([]);
   const [sentimentLogs, setSentimentLogs] = useState<any[]>([]);
+  const [rawWasteLogs, setRawWasteLogs] = useState<any[]>([]);
+  const [rawResourceLogs, setRawResourceLogs] = useState<any[]>([]);
 
+  // 🛡️ INITIAL HYDRATION: Fetch all database-anchored identity & settings
+  useEffect(() => {
+    let isSubscribed = true;
+
+    const fetchSystemSettings = async () => {
+      try {
+        setIsHydrating(true);
+        console.log("🚀 HYDRATION_START: Synchronizing Administrative Core...");
+
+        // Safety Timeout (10s) to prevent frozen screen
+        const timeoutId = setTimeout(() => {
+          if (isHydrating) {
+            console.warn("⚠️ HYDRATION_TIMEOUT: Secure Datalink took too long to initialize. Proceeding with caution.");
+            if (isHydrating) setIsHydrating(false);
+          }
+        }, 10000);
+
+        const { data: { session }, error: authError } = await supabase.auth.getSession();
+        if (!session || authError) {
+          console.warn("🔐 NO VALID SESSION DETECTED. RETURNING TO COMMAND CENTER.");
+          clearTimeout(timeoutId);
+          onLogout();
+          return;
+        }
+        const authUser = session.user;
+
+        // Strict live database queries (Hybrid Path)
+        const [benchmarksRes, personnelRes, companyRes, outletsRes] = await Promise.all([
+          supabase.from('benchmarks').select('*').eq('user_id', authUser.id).maybeSingle(),
+          supabase.from('personnel').select('*'),
+          supabase.from('company_settings').select('*').eq('user_id', authUser.id).maybeSingle(),
+          supabase.from('outlets').select('*')
+        ]);
+
+        if (companyRes.data) {
+          setCompany(prev => ({ 
+            ...prev, 
+            name: companyRes.data.admin_name, 
+            company_name: companyRes.data.company_name || companyRes.data.admin_name
+          }));
+          
+          // 🛡️ Audit Sync Hydration (Phase 4)
+          setAuditReport(prev => ({
+            ...prev,
+            cycle: companyRes.data.audit_cycle || prev.cycle,
+            fromDate: companyRes.data.audit_from_date || prev.fromDate,
+            toDate: companyRes.data.audit_to_date || prev.toDate,
+            outletSelection: companyRes.data.audit_outlet_selection || prev.outletSelection,
+            comments: companyRes.data.audit_comments || prev.comments
+          }));
+        } else {
+          // If no custom identity exists, keep blank for user input
+          setCompany(prev => ({ ...prev, name: '' }));
+        }
+
+        // Hybrid Outlet Merging
+        const dbOutlets: Outlet[] = (outletsRes.data || []).map((o: any) => ({
+          id: o.id,
+          name: o.name,
+          code: o.code,
+          location: o.location || '',
+          color_hex: o.color_hex
+        }));
+
+        setOutlets(prev => {
+          // 🛡️ De-Duplication Fix: prefer DB results, only use defaults if DB is empty
+          if (dbOutlets.length > 0) {
+            return dbOutlets;
+          }
+          return DEFAULT_OUTLETS;
+        });
+
+        if (benchmarksRes.data) {
+          setParams(prev => ({
+            ...prev,
+            wasteTarget: benchmarksRes.data.food_waste_target_kg || prev.wasteTarget,
+            waterTarget: benchmarksRes.data.water_usage_target_l || prev.waterTarget,
+            energyTarget: benchmarksRes.data.energy_limit_kwh || prev.energyTarget
+          }));
+          
+          // 🛡️ Legal Consent Hydration (Phase 6)
+          // For new users with no benchmarks record, ensure we still explicitly set/check consent
+          const consentStatus = benchmarksRes.data?.has_consented ?? user.legal_consent ?? false;
+          onUpdateUser({ legal_consent: consentStatus });
+        } else {
+          // If no benchmarks, explicitly ensure legal_consent is false for Admins
+          if (user.role?.toLowerCase() === 'admin') {
+            onUpdateUser({ legal_consent: user.legal_consent ?? false });
+          }
+        }
+
+        if (personnelRes.data && personnelRes.data.length > 0) {
+          const mappedUsers = personnelRes.data.map((p: any) => ({
+            id: p.id,
+            fullName: p.full_name,
+            email: p.email,
+            role: p.role,
+            position: p.position,
+            outletCode: p.outlet_code,
+            permissions: p.permissions || []
+          }));
+          setUsers(mappedUsers);
+        }
+      } catch (err) {
+        console.error("Hydration BLOCKED:", err);
+      } finally {
+        if (isSubscribed) {
+          console.log("🏁 HYDRATION_COMPLETE: Secure Datalink Established.");
+          setIsHydrating(false);
+        }
+      }
+    };
+    fetchSystemSettings();
+
+    // 🛡️ Auth State Change Listener (Phase 2 Repair)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        onLogout();
+      }
+    });
+
+    return () => {
+      isSubscribed = false;
+      subscription.unsubscribe();
+    };
+  }, []); // ✅ Run ONLY ONCE on mount. Stabilization applied.
+
+  // Sync currentOutletCode automatically when currentOutletName changes
+  useEffect(() => {
+    if (company.currentOutletName) {
+      const code = company.currentOutletName.substring(0, 4).toUpperCase() + Math.floor(Math.random() * 100).toString().padStart(2, '0');
+      setCompany(prev => ({ ...prev, currentOutletCode: code }));
+    } else {
+      setCompany(prev => ({ ...prev, currentOutletCode: 'XXXX00' }));
+    }
+  }, [company.currentOutletName]);
 
   useEffect(() => {
     const fetchOperationalData = async () => {
-      // 1. Fetch Outlets (Platform Valid Sources)
-      const { data: outletData, error: outletError } = await supabase
-        .from('outlets')
-        .select('*');
-
-      let currentOutlets: Outlet[] = [];
-
-      if (outletData && outletData.length > 0) {
-        // Deduplicate outlets by code to prevent legend issues
-        // FIX: Supabase sometimes omits the 'code' property. Fall back to name matching or o.name.
-        const uniqueOutlets = Array.from(new Map(outletData.map((o: any) => {
-          const matchedDefault = DEFAULT_OUTLETS.find(def => def.name.toLowerCase() === o.name?.toLowerCase());
-          const code = o.code || matchedDefault?.code || o.name;
-          return [code, { ...o, code }];
-        })).values()) as Outlet[];
-
-        setOutlets(uniqueOutlets);
-        localStorage.setItem('ecometricus_outlets_v2', JSON.stringify(uniqueOutlets));
-        currentOutlets = uniqueOutlets;
-      } else {
-        console.error("Error fetching outlets:", outletError);
-        // Fallback to local storage if API fails (or init default if empty)
-        // V2 Key to force fresh start if V1 was corrupted
-        const saved = localStorage.getItem('ecometricus_outlets_v2');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          // Deduplicate saved data as well to prevent persistent corruption
-          const uniqueSaved = Array.from(new Map(parsed.map((o: any) => [o.code, o])).values()) as Outlet[];
-          setOutlets(uniqueSaved);
-          currentOutlets = uniqueSaved;
-        } else {
-          currentOutlets = DEFAULT_OUTLETS;
-          setOutlets(DEFAULT_OUTLETS);
-        }
+      // 🛡️ Auth Sync Gate (Phase 3 Repair)
+      const { data: { session }, error: operationalAuthError } = await supabase.auth.getSession();
+      if (!session || operationalAuthError || isHydrating) {
+        if (!session || operationalAuthError) onLogout();
+        return;
       }
 
-      // Create a map of Outlet ID (UUID) -> Outlet Code (e.g. ROY02)
+      // 1. Ensure we have the outlet map for ID -> Code mapping
       const outletMap = new Map<string, string>();
-      // Also map from ID to Name if needed, or Code to ID
-      if (outletData) {
-        outletData.forEach((o: any) => {
-          outletMap.set(o.id, o.code);
-        });
-      }
+      outlets.forEach((o: any) => {
+        if (o.id) outletMap.set(o.id, o.code);
+      });
 
       // Helper to validate if a code exists in our current known outlets
-      const isValidOutlet = (code: string) => currentOutlets.some(o => o.code === code);
+      const isValidOutlet = (code: string) => outlets.some(o => o.code === code);
 
       // 2. Fetch Food Cost Logs based on Role
       let query = supabase.from('food_cost_logs').select('*');
 
       // Supervisor Restriction: Only see own outlet
-      // Admin sees ALL (no filter applied)
       if (user.role !== 'admin' && user.outletCode) {
-        const userOutlet = currentOutlets.find((o: any) => o.code === user.outletCode);
+        const userOutlet = outlets.find((o: any) => o.code === user.outletCode);
         if (userOutlet && (userOutlet as any).id) {
           query = query.eq('outlet_id', (userOutlet as any).id);
         }
       }
 
-      const { data: logs, error: logError } = await query;
+      const { data: logs } = await query;
 
       if (logs) {
-        // Map the raw data to the shape the chart expects
-        // CRITICAL FIX: Map outlet_id (UUID) to outlet_code (e.g. ROY02) using the map
         const mappedLogs = logs.map(log => {
           const mappedCode = outletMap.get(log.outlet_id) || log.outlet_id;
           return {
@@ -489,11 +597,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
             created_at: log.created_at
           };
         })
-          // Filter out logs that don't match a known valid outlet code (prevents broken lines)
           .filter(log => isValidOutlet(log.outlet_code))
           .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
-        // If filtering leaves us with valid data, use it. Otherwise set empty to trigger mock fallback.
         setFoodCostLogs(mappedLogs);
       } else {
         setFoodCostLogs([]);
@@ -502,15 +608,14 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
       // 3. Fetch Labor Cost Logs based on Role
       let laborQuery = supabase.from('labor_cost_logs').select('*');
 
-      // Supervisor Restriction: Only see own outlet
       if (user.role !== 'admin' && user.outletCode) {
-        const userOutlet = currentOutlets.find((o: any) => o.code === user.outletCode);
+        const userOutlet = outlets.find((o: any) => o.code === user.outletCode);
         if (userOutlet && (userOutlet as any).id) {
           laborQuery = laborQuery.eq('outlet_id', (userOutlet as any).id);
         }
       }
 
-      const { data: laborLogs, error: laborError } = await laborQuery;
+      const { data: laborLogs } = await laborQuery;
 
       if (laborLogs) {
         const mappedLaborLogs = laborLogs.map(log => {
@@ -534,7 +639,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
       let profitQuery = supabase.from('profit_margins_logs').select('*');
 
       if (user.role !== 'admin' && user.outletCode) {
-        const userOutlet = currentOutlets.find((o: any) => o.code === user.outletCode);
+        const userOutlet = outlets.find((o: any) => o.code === user.outletCode);
         if (userOutlet && (userOutlet as any).id) {
           profitQuery = profitQuery.eq('outlet_id', (userOutlet as any).id);
         }
@@ -568,6 +673,31 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
       // 5. Fetch Customer Sentiment Logs based on Role
       // Forced Mock Data application for Customer Sentiment to bypass complex mapping issues
       setSentimentLogs(user.role === 'admin' ? ADMIN_SENTIMENT_MOCK_DATA : weeklyTrends.map(t => ({ day: t.day, rating_value: t.sentiment, outlet_code: user.outletCode || 'ROY02' })));
+
+      // 6. Fetch Raw Waste Logs for Mila KPI Sync
+      let wasteQuery = supabase.from('food_waste_logs').select('*');
+      if (user.role !== 'admin' && user.outletCode) {
+        const userOutlet = outlets.find((o: any) => o.code === user.outletCode);
+        if (userOutlet && (userOutlet as any).id) {
+          wasteQuery = wasteQuery.eq('outlet_id', (userOutlet as any).id);
+        }
+      }
+      const { data: wasteData, error: wasteErr } = await wasteQuery;
+      if (wasteData) {
+        // Filter out mock data if strictly needed, or just let it map
+        setRawWasteLogs(wasteData.filter((w: any) => !w.is_mock));
+      }
+
+      // 7. Fetch Raw Resource Logs for Mila KPI Sync
+      let resourceQuery = supabase.from('resource_logs').select('*');
+      if (user.role !== 'admin' && user.outletCode) {
+        const userOutlet = outlets.find((o: any) => o.code === user.outletCode);
+        if (userOutlet && (userOutlet as any).id) {
+          resourceQuery = resourceQuery.eq('outlet_id', (userOutlet as any).id);
+        }
+      }
+      const { data: resourceData } = await resourceQuery;
+      if (resourceData) setRawResourceLogs(resourceData);
     };
 
 
@@ -583,11 +713,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
     comments: ''
   });
 
-  const [users, setUsers] = useState<(UserProfile & { password?: string })[]>([
-    { id: '1', fullName: 'Alexander Pierce', email: 'a.pierce@hotel.com', role: 'admin' as any, position: 'Admin' as any, outletCode: 'ROY02', password: 'ADMIN_BACKUP_123' },
-    { id: '2', fullName: 'Sarah Chen', email: 's.chen@hotel.com', role: 'supervisor' as any, position: 'Exec Chef' as any, outletCode: 'FISH01', password: 'CHEF_BACKUP_456' },
-    { id: '3', fullName: 'Marcus Vain', email: 'm.vain@hotel.com', role: 'gm' as any, position: 'GM' as any, outletCode: 'ROY02', password: 'GM_MASTER_789' }
-  ]);
+  const [users, setUsers] = useState<(UserProfile & { password?: string })[]>([]);
 
   const [params, setParams] = useState({
     wasteUnit: 'kg',
@@ -669,7 +795,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
     });
   };
 
-  const handleEnroll = () => {
+  const handleEnroll = async () => {
     if (!enrollName || !enrollEmail || !enrollPosition || !enrollOutlet) {
       alert("Please complete all enrollment fields.");
       return;
@@ -680,21 +806,69 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
       : Math.random().toString(36).slice(-8).toUpperCase();
 
     const link = `https://ecometricus.app/access/${enrollOutlet}?token=${password.toLowerCase()}`;
+    const upsertId = enrollId || Date.now().toString();
+
+    // Format strict schema constraints for Personnel table
+    const mappedOutlet = outlets.find(o => o.code === enrollOutlet);
+    const dbPayload: any = {
+      full_name: enrollName,
+      role: enrollRole.toLowerCase(),
+      pincode: password
+    };
+    
+    // Only send valid UUID formats or let DB generate
+    if (enrollId && enrollId.includes('-')) {
+      dbPayload.id = enrollId;
+    }
+    if (mappedOutlet && mappedOutlet.id) {
+       dbPayload.outlet_id = mappedOutlet.id;
+    }
+
+    // 🛡️ Auth Sync Gate (Phase 3 Repair)
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      alert("User authentication required for personnel management.");
+      return;
+    }
+
+    // Trigger Strict Insert (as requested)
+    let error = null;
+    let status = 0;
+    let newId = upsertId;
+
+    if (enrollId) {
+       const res = await supabase.from('personnel').upsert(dbPayload);
+       error = res.error;
+       status = res.status;
+    } else {
+       const res = await supabase.from('personnel').insert(dbPayload).select().single();
+       error = res.error;
+       status = res.status;
+       if (res.data) newId = res.data.id;
+    }
+
+    if (error || (status !== 200 && status !== 201)) {
+       console.error("PERSONNEL_UPSERT_FAILURE:", error);
+       alert("Database Error: " + (error?.message || `Failed to persist personnel (Status: ${status})`));
+       return;
+    }
+
+    alert("Save Successful");
 
     if (enrollId) {
       setUsers(prev => prev.map(u => u.id === enrollId ? {
-        ...u,
-        fullName: enrollName,
-        email: enrollEmail,
-        position: enrollPosition as any,
-        outletCode: enrollOutlet,
-        role: enrollRole.toLowerCase() as any,
-        permissions: enrollPermissions,
-        password: password
-      } : u));
+          ...u,
+          fullName: enrollName,
+          email: enrollEmail,
+          position: enrollPosition as any,
+          outletCode: enrollOutlet,
+          role: enrollRole.toLowerCase() as any,
+          permissions: enrollPermissions,
+          password: password
+        } : u));
     } else {
       const newUser: UserProfile & { password?: string } = {
-        id: Date.now().toString(),
+        id: newId,
         fullName: enrollName,
         email: enrollEmail,
         role: enrollRole.toLowerCase() as any,
@@ -717,7 +891,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
     setEnrollRole('');
     setEnrollPermissions([]);
 
-    alert(`Personnel record for ${enrollName || 'staff'} has been processed. Access credentials generated below.`);
+    alert(`Personnel record for ${enrollName || 'staff'} has been processed and saved.`);
   };
 
   const handleEdit = (user: UserProfile & { password?: string }) => {
@@ -736,25 +910,89 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
     form?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleAddOutlet = () => {
+  const handleDeletePersonnel = async (id: string) => {
+    if (!confirm("Permanently remove this staff member from the registry?")) return;
+
+    // 🛡️ Auth Persistence Sync (Phase 5)
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      alert("User authentication required for registry management.");
+      return;
+    }
+
+    const { error, status } = await supabase.from('personnel').delete().eq('id', id);
+
+    if (error || (status !== 204 && status !== 200)) {
+       console.error("PERSONNEL_DELETE_FAILURE:", error);
+       alert("Database Error: " + (error?.message || `Failed to remove staff member (Status: ${status})`));
+       return;
+    }
+
+    setUsers(prev => prev.filter(u => u.id !== id));
+    alert("Save Successful");
+  };
+
+  const handleAddOutlet = async () => {
     if (!company.currentOutletName) return;
     const cleanName = company.currentOutletName.trim();
     const existing = outlets.find(o => o.name.toLowerCase() === cleanName.toLowerCase());
 
-    if (!existing) {
-      const newOutlet: Outlet = { name: cleanName, code: company.currentOutletCode };
-      setOutlets(prev => [...prev, newOutlet]);
-      setSequenceCounter(prev => prev + 1);
-      setCompany(prev => ({ ...prev, currentOutletName: '', currentOutletCode: 'XXXX00' }));
-    } else {
+    if (existing) {
       alert("Outlet already registered in core session.");
+      return;
     }
+
+    // 🛡️ Auth Persistence Sync (Phase 4)
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      alert("User authentication required for registry management.");
+      return;
+    }
+
+    const newOutlet: Outlet = { 
+      name: cleanName, 
+      code: company.currentOutletCode,
+      color_hex: '#718096' // Default Grey for new outlets
+    };
+
+    const { error, status } = await supabase.from('outlets').insert({
+      name: newOutlet.name,
+      code: newOutlet.code,
+      color_hex: newOutlet.color_hex
+    });
+
+    if (error || (status !== 201 && status !== 200)) {
+      console.error("OUTLET_INSERT_FAILURE:", error);
+      alert("Database Error: " + (error?.message || `Failed to persist outlet (Status: ${status})`));
+      return;
+    }
+
+    setOutlets(prev => [...prev, newOutlet]);
+    setSequenceCounter(prev => prev + 1);
+    setCompany(prev => ({ ...prev, currentOutletName: '', currentOutletCode: 'XXXX00' }));
+    alert("Outlet Registered Successfully.");
   };
 
-  const handleRemoveOutlet = (code: string) => {
-    if (confirm(`Remove outlet ${code} from registry?`)) {
-      setOutlets(prev => prev.filter(o => o.code !== code));
+  const handleRemoveOutlet = async (code: string) => {
+    if (!confirm(`Remove outlet ${code} from registry?`)) return;
+
+    // 🛡️ Auth Persistence Sync (Phase 4)
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      alert("User authentication required for registry management.");
+      return;
     }
+
+    const { error, status } = await supabase.from('outlets').delete().eq('code', code);
+
+    if (error || (status !== 204 && status !== 200)) {
+       console.error("OUTLET_DELETE_FAILURE:", error);
+       alert("Database Error: " + (error?.message || `Failed to remove outlet (Status: ${status})`));
+       return;
+    }
+
+    setOutlets(prev => prev.filter(o => o.code !== code));
+    alert("Outlet Removed Successfully.");
   };
 
   const togglePermission = (perm: string) => {
@@ -767,19 +1005,95 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
     return TIMEZONES[company.city] || 'UTC';
   }, [company.city]);
 
-  const handleSaveAll = () => {
+  const handleSaveAll = async () => {
     setSaveStatus('saving');
-    setTimeout(() => {
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("User authentication required for persistence.");
+      const userId = session.user.id;
+
+      // 1. Upsert Company Identity
+      const { error: companyError, status: companyStatus } = await supabase.from('company_settings').upsert({
+        user_id: userId,
+        admin_name: company.name,
+        company_name: company.company_name || company.name,
+        
+        // 🔒 Audit Persistence Sync (Phase 4)
+        audit_cycle: auditReport.cycle,
+        audit_from_date: auditReport.fromDate,
+        audit_to_date: auditReport.toDate,
+        audit_outlet_selection: auditReport.outletSelection,
+        audit_comments: auditReport.comments
+      }, { onConflict: 'user_id' });
+
+      if (companyError || (companyStatus !== 200 && companyStatus !== 201)) {
+        console.error("IDENTITY_UPSERT_FAILURE:", companyError);
+        throw companyError || new Error(`Database rejected identity update (Status: ${companyStatus})`);
+      }
+
+      // 2. Persist All Current Outlets (Registry Sync)
+      // This ensures defaults become permanent in the DB so they can be managed/deleted
+      if (outlets.length > 0) {
+        const { error: outletError, status: outletStatus } = await supabase.from('outlets').upsert(
+          outlets.map(o => ({
+            name: o.name,
+            code: o.code,
+            location: o.location || company.city,
+            color_hex: o.color_hex || '#77B139'
+          })),
+          { onConflict: 'code' }
+        );
+        if (outletError || (outletStatus !== 200 && outletStatus !== 201)) {
+          console.error("OUTLET_UPSERT_FAILURE:", outletError);
+          throw outletError || new Error(`Database rejected outlet registry update (Status: ${outletStatus})`);
+        }
+      }
+
+      // ONLY UPDATE LOCAL UI STATE ON SUCCESS
+      alert("Save Successful");
       setSaveStatus('success');
       setIsEditingIdentity(false);
       setIsEditingAudit(false);
       setIsEditingBenchmarks(false);
       setIsEditingApis(false);
       setTimeout(() => setSaveStatus('idle'), 2000);
-    }, 1000);
+    } catch (error: any) {
+      alert("Database Error: " + error.message);
+      setSaveStatus('idle');
+    }
   };
 
-  const handleSaveBenchmarks = () => {
+  const handleSaveBenchmarks = async () => {
+    setSaveStatus('saving');
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      alert("User authentication required.");
+      setSaveStatus('idle');
+      return;
+    }
+    const userId = session.user.id;
+
+    // Trigger Strict DB Upsert
+    const { error, status } = await supabase.from('benchmarks').upsert({
+      user_id: userId,
+      food_waste_target_kg: params.wasteTarget,
+      water_usage_target_l: params.waterTarget,
+      energy_limit_kwh: params.energyTarget,
+      has_consented: true
+    });
+
+    if (error || (status !== 200 && status !== 201)) {
+      console.error("BENCHMARK_UPSERT_FAILURE:", error);
+      alert("Database Error: " + (error?.message || `Failed to persist benchmarks (Status: ${status})`));
+      setSaveStatus('idle');
+      return;
+    }
+
+    // ONLY UPDATE LOCAL UI STATE ON SUCCESS
+    alert("Save Successful");
+
     if (params.benchmarkRegion === 'Manual' && params.selectedManualOutlet) {
       setManualOutletSettings(prev => ({
         ...prev,
@@ -793,12 +1107,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
         }
       }));
     }
-    setSaveStatus('saving');
-    setTimeout(() => {
-      setSaveStatus('success');
-      setIsEditingBenchmarks(false);
-      setTimeout(() => setSaveStatus('idle'), 2000);
-    }, 1000);
+    
+    setSaveStatus('success');
+    setIsEditingBenchmarks(false);
+    setTimeout(() => setSaveStatus('idle'), 2000);
   };
 
   const handleSaveApis = () => {
@@ -873,20 +1185,29 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
   }, []);
 
   const sessionData = useMemo(() => {
-    // "Cumulative Data Reporting module (aggregating kitchen prep inputs from all outlets)"
-    // Since we share one localStorage for this demo, we treat the session entries as the global cumulative.
-    const totalWasteKg = sessionWasteEntries.reduce((sum, e) => sum + e.amount, 0);
-    const totalWaterUsage = sessionResourceEntries.filter(e => e.type === 'water').reduce((sum, e) => sum + e.amount, 0);
-    const totalEnergyUsage = sessionResourceEntries.filter(e => e.type === 'energy').reduce((sum, e) => sum + e.amount, 0);
+    // HYBRID SYSTEM: Live Supabase Data for Royal (ROY02) + Simulated Mock Data for remaining 3 Outlets
+    const liveWasteKg = rawWasteLogs.reduce((sum, e) => sum + (parseFloat(e.mass_kg) || 0), 0);
+    const liveWaterUsage = rawResourceLogs.filter(e => e.resource_type === 'water').reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+    const liveEnergyUsage = rawResourceLogs.filter(e => e.resource_type === 'energy').reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
 
-    const costPerItemUnit = 7.50;
-    const costPerDisposalUnit = 1.25;
+    const mockWasteKg = sessionWasteEntries.filter(e => e.outletId !== 'ROY02').reduce((sum, e) => sum + e.amount, 0);
+    const mockWaterUsage = sessionResourceEntries.filter(e => e.type === 'water' && e.outletId !== 'ROY02').reduce((sum, e) => sum + e.amount, 0);
+    const mockEnergyUsage = sessionResourceEntries.filter(e => e.type === 'energy' && e.outletId !== 'ROY02').reduce((sum, e) => sum + e.amount, 0);
+
+    const totalWasteKg = liveWasteKg + mockWasteKg;
+    const totalWaterUsage = liveWaterUsage + mockWaterUsage;
+    const totalEnergyUsage = liveEnergyUsage + mockEnergyUsage;
+
     const carbonCoeff = 2.85;
     const waterCoeff = 3.40;
 
-    const financialLossItems = totalWasteKg * costPerItemUnit;
-    const financialLossDisposal = totalWasteKg * costPerDisposalUnit;
-    const totalFinancialLoss = financialLossItems + financialLossDisposal;
+    // Financial Impact calculation mapping: Hybrid total * $6.50 multiplier
+    const totalCalculatedFinLoss = totalWasteKg * 6.50;
+    const totalFinancialLoss = totalCalculatedFinLoss || 1246.85;
+
+    // Exact 85/15 item-loss vs logistics proportional mapping
+    const financialLossItems = totalFinancialLoss * 0.85;
+    const financialLossDisposal = totalFinancialLoss * 0.15;
 
     // Use Admin Parameters for Benchmarks
     const wasteBenchmark = effectiveParams.wasteTarget;
@@ -894,19 +1215,19 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
     return {
       waste: {
         kg: totalWasteKg || 142.5,
-        cost: financialLossItems || 1068.75,
-        disposalCost: financialLossDisposal || 178.10
+        cost: financialLossItems,
+        disposalCost: financialLossDisposal
       },
       water: totalWaterUsage || 12450,
       energy: totalEnergyUsage || 480,
       impacts: {
         carbonImpact: (totalWasteKg || 142.5) * carbonCoeff,
         waterFootprint: (totalWasteKg || 142.5) * waterCoeff,
-        totalFinancialLoss: totalFinancialLoss || 1246.85,
+        totalFinancialLoss: totalFinancialLoss,
         isDeviating: (totalWasteKg || 142.5) > wasteBenchmark
       }
     };
-  }, [sessionWasteEntries, sessionResourceEntries, effectiveParams.wasteTarget]);
+  }, [rawWasteLogs, rawResourceLogs, sessionWasteEntries, sessionResourceEntries, effectiveParams.wasteTarget]);
 
   const impacts = sessionData.impacts;
 
@@ -923,13 +1244,18 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
     // Real-time aggregate data
     metrics: {
       totalOutlets: outlets.length,
-      activeOutlets: new Set([...sessionWasteEntries.map(e => e.outletId), ...sessionResourceEntries.map(e => e.outletId)]).size,
+      activeOutlets: new Set([
+        ...rawWasteLogs.map(e => e.outlet_id), 
+        ...rawResourceLogs.map(e => e.outlet_id),
+        ...sessionWasteEntries.map(e => e.outletId),
+        ...sessionResourceEntries.map(e => e.outletId)
+      ]).size,
       financials: impacts, // Inherit the calculated impacts
       wasteVolume: sessionData.waste.kg,
       efficiencyScore: Math.round((impacts.carbonImpact / (sessionData.waste.kg || 1)) * 100) // Rough metric
     },
     // Pass raw session data for deep reasoning if needed
-    recentLogs: sessionWasteEntries.slice(-10), // Last 10 entries for context
+    recentLogs: [...rawWasteLogs, ...sessionWasteEntries].slice(-10), // Last 10 entries for context
     marketingModality: "Admin-Level Strategic Oversight",
     activeAlerts: {
       kpi: impacts.totalFinancialLoss > 500, // Mock threshold for Admin
@@ -937,9 +1263,23 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
     }
   };
 
+  // 🛡️ Legal Consent Gate Logic (Admin Only)
+  // 🛡️ Legal Consent Gate Logic
+  const isPendingConsent = user.role?.toLowerCase() === 'admin' && !user.legal_consent;
+
+  // STRICT RULE OVERRIDE: Spinner Lock until hydration is completed
+  if (isHydrating) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#030907] text-brand-gold flex-col gap-4">
+        <Loader2 className="animate-spin" size={48} />
+        <p className="text-[10px] font-black uppercase tracking-[0.2em]">INITIALIZING SECURE DATALINK...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col min-h-screen bg-brand-dark">
-      {/* Header Profile - Linked with Admin Outlet Data */}
+    <div className={`relative min-h-screen ${isPendingConsent ? 'overflow-hidden' : ''}`}>
+      {/* 🛡️ Header Profile (Outside the blur/block layer for Exit access) */}
       <header className="sticky top-0 z-50 bg-brand-dark/95 backdrop-blur-xl border-b-2 border-brand-gold/50 h-24 sm:h-32 shrink-0 shadow-lg px-4 sm:px-8">
         <div className="max-w-[1920px] mx-auto h-full flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -974,6 +1314,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
         <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-brand-gold to-transparent shadow-[0_0_15px_#C8A413]"></div>
       </header>
 
+      {/* Background Dashboard Container with Blur Toggle */}
+      <div className={`transition-all duration-1000 flex flex-col min-h-screen ${isPendingConsent ? 'blur-2xl grayscale pointer-events-none' : ''}`}>
+        <div className="flex-grow flex flex-col bg-[#030907] text-gray-100 font-sans selection:bg-brand-gold/30 selection:text-brand-gold overflow-hidden">
+
       <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col gap-6 sm:gap-8 flex-grow overflow-hidden">
         {/* Horizontal Navigation Menu - Stacked Layout */}
         <div className="w-full bg-brand-dark border border-brand-gold/20 rounded-[24px] px-8 py-6 flex flex-col gap-6 shadow-xl backdrop-blur-sm shrink-0">
@@ -991,10 +1335,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
               <button
                 onClick={handleSaveAll}
                 disabled={saveStatus !== 'idle'}
-                className={`w-full sm:w-auto bg-brand-eco text-brand-dark px-8 py-3 rounded-full text-xs font-black uppercase tracking-widest hover:brightness-110 transition-all flex items-center justify-center gap-2 shadow-xl ${saveStatus === 'saving' ? 'opacity-70 cursor-wait' : ''}`}
+                className={`w-full sm:w-auto bg-brand-eco text-brand-dark px-8 py-3 rounded-full text-xs font-black uppercase tracking-widest hover:brightness-110 transition-all flex items-center justify-center gap-2 shadow-xl ${saveStatus === 'saving' ? 'opacity-70 cursor-wait' : ''} ${saveStatus === 'success' ? 'bg-brand-eco' : ''}`}
               >
-                {saveStatus === 'saving' ? <RefreshCcw size={16} className="animate-spin" /> : <Save size={16} />}
-                {activeView === PortalView.TEAM ? "Role Saved" : "Update HUB"}
+                {saveStatus === 'saving' ? <RefreshCcw size={16} className="animate-spin" /> : saveStatus === 'success' ? <Check size={16} /> : <Save size={16} />}
+                {saveStatus === 'success' ? "Success" : activeView === PortalView.TEAM ? "Role Saved" : "Update HUB"}
               </button>
             )}
           </div>
@@ -1041,7 +1385,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
                       {[
                         { id: DashboardTab.SUMMARIZED, label: 'Overview', icon: TrendingUp },
                         { id: DashboardTab.FOOD_WASTE, label: 'Food Waste', icon: Leaf },
-                        { id: DashboardTab.ENERGY_WATER, label: 'Resource flows', icon: Zap },
+                        { id: DashboardTab.ENERGY_WATER, label: 'Energy & Water', icon: Zap },
                         { id: DashboardTab.MILA_AI, label: 'Mila AI', icon: Cpu },
                         { id: DashboardTab.GAMIFICATION, label: 'Gamification', icon: Award },
                       ].map((tab) => (
@@ -1069,8 +1413,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
                                   <Cpu className="text-brand-dark" size={32} />
                                 </div>
                                 <div>
-                                  <h3 className="text-2xl font-geometric font-black text-white uppercase tracking-tight leading-none">MILA ACTIONABLE INTELLIGENCE: Cumulative Data Reporting</h3>
-                                  <p className="text-[10px] font-black text-brand-gold uppercase tracking-[0.4em] mt-2">Global Operational ESG Strategy Hub</p>
+                                  <h3 className="text-2xl font-geometric font-black text-white uppercase tracking-tight leading-none">MILA ACTIONABLE INTELLIGENCE: SUSTAINABILITY PERFORMANCE PROPORTIONAL SCALING</h3>
+                                  <p className="text-[10px] font-black text-brand-gold uppercase tracking-[0.4em] mt-2">OPERATIONAL ESG STRATEGY HUB</p>
                                 </div>
                               </div>
 
@@ -1085,7 +1429,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
                                   </div>
                                   <div className="flex items-center gap-2 mt-2">
                                     <AlertTriangle className="text-brand-alert" size={14} />
-                                    <p className="text-[9px] text-gray-500 uppercase font-bold tracking-wider">Operational Deviation Impact.</p>
+                                    <p className="text-[9px] text-brand-alert uppercase font-bold tracking-wider">OPERATIONAL DEVIATION IMPACT.</p>
                                   </div>
                                 </div>
 
@@ -1099,7 +1443,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
                                   </div>
                                   <div className="flex items-center gap-2 mt-2">
                                     <ShieldCheck className="text-brand-eco" size={14} />
-                                    <p className="text-[9px] text-gray-500 uppercase font-bold tracking-wider">Averted Loss Footprint.</p>
+                                    <p className="text-[9px] text-brand-eco uppercase font-bold tracking-wider">AVERTED LOSS FOOTPRINT.</p>
                                   </div>
                                 </div>
 
@@ -1115,7 +1459,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
                                   </div>
                                   {impacts.isDeviating && (
                                     <div className="bg-brand-alert text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest animate-pulse flex items-center gap-2">
-                                      <AlertTriangle size={12} /> Escalation triggered supervisor report
+                                      <AlertTriangle size={12} /> ESCALATION TRIGGERED SUPERVISOR REPORT
                                     </div>
                                   )}
                                 </div>
@@ -1123,15 +1467,14 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
                             </div>
                           </div>
 
-
-
                           {/* EARTH KEEPER ENGAGEMENT RADIAL CHART - ADMIN VIEW */}
                           {/* "Position the Earth Keeper Engagement % Chart directly BELOW the Mila Actionable Intelligence container... only element in this section" */}
                           {(() => {
                             // "Calculate Outlet Engagement % (Unique Outlets in Session Data)"
                             // Logic: Total Active Outlets / Total Registered Outlets
-                            // Active = has submitted ANY waste or resource entry in this session
                             const activeOutletIds = new Set([
+                              ...rawWasteLogs.map(e => e.outlet_id),
+                              ...rawResourceLogs.map(e => e.outlet_id),
                               ...sessionWasteEntries.map(e => e.outletId),
                               ...sessionResourceEntries.map(e => e.outletId)
                             ]);
@@ -1145,21 +1488,22 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
 
                             // "Color Thresholds: Green (> 85%), Yellow (65% - 84%), Red (<65%)"
                             // "Status Badge Logic"
-                            let chartColor = '#ef4444'; // Red
-                            let statusLabel = 'ATTENTION';
-                            let statusBg = 'bg-red-500';
-                            let statusText = 'text-white';
+                            // Professional Corporate Neutralization (No Red)
+                            let chartColor = '#C8A413'; // Gold default
+                            let statusLabel = 'REVIEW';
+                            let statusBg = 'bg-brand-gold';
+                            let statusText = 'text-brand-dark';
 
                             if (engagementPct >= 85) {
-                              chartColor = '#22c55e'; // Green (brandEco is usually consistent, but user asked for standard Green/Red/Yellow logic here)
+                              chartColor = '#22c55e'; // Green
                               statusLabel = 'ON TRACK';
                               statusBg = 'bg-green-500';
                               statusText = 'text-white';
                             } else if (engagementPct >= 65) {
                               chartColor = '#eab308';
-                              statusLabel = 'ATTENTION';
-                              statusBg = 'bg-[#1a0a09] border border-[#FF3131]/40 shadow-[0_4px_12px_rgba(255,49,49,0.1)]';
-                              statusText = 'text-[#FF3131] font-black';
+                              statusLabel = 'REVIEW';
+                              statusBg = 'bg-[#1a1c09] border border-brand-gold/40 shadow-inner';
+                              statusText = 'text-brand-gold font-black';
                             }
 
                             // SVG Circle Geometry
@@ -1189,7 +1533,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
 
                                     {/* "STRICT RED DESIGN: Corrected ATTENTION badge" */}
                                     <div className={`px-4 py-1.5 rounded-xl ${statusBg} ${statusText} text-[10px] font-black uppercase tracking-widest shadow-xl flex items-center gap-2 transition-all`}>
-                                      <Info size={12} strokeWidth={3} className="text-[#FF3131]" />
+                                      <Info size={12} strokeWidth={3} className="text-brand-gold" />
                                       {statusLabel}
                                     </div>
                                   </div>
@@ -1352,7 +1696,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
 
                       {dashboardTab === DashboardTab.ENERGY_WATER && (
                         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                          <WaterUsageChart />
+                          <ResourceIntelligence allOutlets={outlets} />
                         </div>
                       )}
 
@@ -1510,7 +1854,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
                             >
                               <option value="All outlets" className="bg-brand-dark">All outlets</option>
                               {outlets.map(o => (
-                                <option key={o.code} value={o.code} className="bg-brand-dark">{o.name} ({o.code})</option>
+                                <option key={o.code} value={o.code}>{o.name} ({o.code})</option>
                               ))}
                             </select>
                             <ChevronDown className="absolute right-4 bottom-3.5 text-brand-gold pointer-events-none" size={14} />
@@ -1783,7 +2127,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
 
                                 <div className="flex gap-4">
                                   <button onClick={() => handleEdit(u)} className="text-gray-500 hover:text-brand-gold transition-colors p-1.5 bg-white/5 rounded-lg"><Edit2 size={16} /></button>
-                                  <button onClick={() => setUsers(prev => prev.filter(usr => usr.id !== u.id))} className="text-gray-500 hover:text-brand-alert transition-colors p-1.5 bg-white/5 rounded-lg"><Trash2 size={16} /></button>
+                                  <button onClick={() => handleDeletePersonnel(u.id)} className="text-gray-500 hover:text-brand-alert transition-colors p-1.5 bg-white/5 rounded-lg"><Trash2 size={16} /></button>
                                 </div>
                               </div>
                             </div>
@@ -1831,7 +2175,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
 
                                     <div className="flex gap-4">
                                       <button onClick={() => handleEdit(u)} className="text-gray-500 hover:text-brand-gold transition-colors p-1.5 bg-white/5 rounded-lg"><Edit2 size={16} /></button>
-                                      <button onClick={() => setUsers(prev => prev.filter(usr => usr.id !== u.id))} className="text-gray-500 hover:text-brand-alert transition-colors p-1.5 bg-white/5 rounded-lg"><Trash2 size={16} /></button>
+                                      <button onClick={() => handleDeletePersonnel(u.id)} className="text-gray-500 hover:text-brand-alert transition-colors p-1.5 bg-white/5 rounded-lg"><Trash2 size={16} /></button>
                                     </div>
                                   </div>
                                 </div>
@@ -2267,9 +2611,23 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout }) => {
           </main>
           <MilaWidget context={adminContext} />
         </>
-      </div >
+      </div>
     </div >
-  );
+
+    </div>
+
+  {/* 🔐 Admin Legal Consent Window (Forensic Gate) */}
+  {isPendingConsent && (
+    <LegalConsentModal
+      user={user}
+      onAccept={async () => {
+        onUpdateUser({ legal_consent: true });
+      }}
+      onLogout={onLogout}
+    />
+  )}
+  </div>
+);
 };
 
 export default DashboardPage;

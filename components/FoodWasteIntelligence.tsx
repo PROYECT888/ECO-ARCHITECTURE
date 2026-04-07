@@ -1,7 +1,9 @@
-
 import React from 'react';
 import { AlertCircle, AlertTriangle, DollarSign, Scale, Cpu, Cloud, CheckCircle2, TrendingDown } from 'lucide-react';
 import { useFoodWasteData } from '../hooks/useFoodWasteData';
+import { useCo2ChartData } from '../hooks/useCo2ChartData';
+import { useFoodWasteChartData } from '../hooks/useFoodWasteChartData';
+import Co2EmissionsTemplateChart from './Co2EmissionsTemplateChart';
 import { Outlet } from '../types';
 
 interface FoodWasteIntelligenceProps {
@@ -24,6 +26,12 @@ const FoodWasteIntelligence: React.FC<FoodWasteIntelligenceProps> = ({
     outletId,
     unitType,
     allOutlets
+  );
+  const { co2Data, isLoading: isLoadingCo2 } = useCo2ChartData();
+  const activeOutletsCount = outletId ? 1 : allOutlets.length;
+  const { chartData: cumulativeData, dailyBenchmark, weeklyTotal, isLoading: isLoadingCumulative } = useFoodWasteChartData(
+    benchmarks.food_waste_target_kg,
+    activeOutletsCount
   );
 
   // Benchmarks & Targets (Aligned with user request)
@@ -63,7 +71,6 @@ const FoodWasteIntelligence: React.FC<FoodWasteIntelligenceProps> = ({
         </div>
       </div>
 
-      {/* 3-Column KPI Summary Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
         {/* Card 1: Carbon Lifecycle */}
@@ -168,37 +175,25 @@ const FoodWasteIntelligence: React.FC<FoodWasteIntelligenceProps> = ({
             </div>
           )}
         </div>
-
       </div>
 
-      {/* Image 8 Bottom Status Bar */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-12 pt-12 border-t border-white/5">
-        <div className="space-y-1">
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Cumulative Waste</p>
-          <p className="text-xl font-black text-[#FF4D4D] tracking-widest uppercase">
-            170.0 <span className="text-[10px] text-white/40">/ 100 KG</span>
-          </p>
-        </div>
-        
-        <div className="space-y-1 border-x border-white/5 px-12">
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">My Score</p>
-          <div className="flex items-center gap-2">
-            <span className="text-xl font-black text-brand-gold tracking-widest uppercase">1350</span>
-            <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Points</span>
-            <span className="ml-2 text-[9px] font-black text-brand-gold/80 border border-brand-gold/30 px-2 py-0.5 rounded flex items-center gap-1.5 uppercase tracking-widest">
-              5 Day Streak 🔥
-            </span>
-          </div>
-        </div>
-
-        <div className="space-y-1 flex flex-col items-end">
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Data Status</p>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-[#77B139] shadow-[0_0_8px_rgba(119,177,57,0.8)] animate-pulse"></div>
-            <span className="text-[10px] font-black text-white/60 uppercase tracking-[0.4em]">Live Sync Active</span>
-          </div>
+      {/* 4. CO2 EMISSIONS - Definitive Performance View */}
+      <div className="pt-16 pb-12 border-t border-white/5">
+        <div className="h-[480px] w-full">
+          {isLoadingCo2 ? (
+            <div className="flex items-center justify-center h-full bg-[#0B221E] border border-white/10 rounded-[32px]">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-gold"></div>
+            </div>
+          ) : (
+            <Co2EmissionsTemplateChart 
+              data={cumulativeData} 
+              benchmark={dailyBenchmark} 
+              weeklyTotal={weeklyTotal}
+            />
+          )}
         </div>
       </div>
+
 
       {/* Outlet Performance Breakdown Table */}
       <div className="bg-[#0B221E] border border-brand-gold/10 rounded-[32px] overflow-hidden shadow-2xl">

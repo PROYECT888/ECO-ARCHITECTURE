@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, CheckCircle2, Zap } from 'lucide-react';
+import { Info, CheckCircle2, Zap } from 'lucide-react';
 
 interface ReportAlertBoxProps {
     title: string;
@@ -10,16 +10,16 @@ interface ReportAlertBoxProps {
 
 const ReportAlertBoxKPI: React.FC<ReportAlertBoxProps> = ({ title, issue, suggestion, type }) => {
     // High-Alert Styling Logic
-    const borderColor = 'border-brand-alert';
+    const borderColor = 'border-brand-gold';
 
     return (
         <div className={`mt-8 bg-[#0f2420] border-l-4 ${borderColor} rounded-r-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] overflow-hidden font-body animate-in fade-in slide-in-from-bottom-6 duration-700`}>
 
             {/* Header / Flashing Attention */}
-            <div className="flex items-center gap-3 p-4 border-b border-white/5 bg-brand-alert/10">
+            <div className="flex items-center gap-3 p-4 border-b border-white/5 bg-brand-gold/10">
                 <div className="flex items-center gap-2 animate-pulse">
-                    <AlertTriangle className="text-brand-alert" size={18} />
-                    <span className="text-xs font-black text-brand-alert uppercase tracking-[0.2em]">ATTENTION</span>
+                    <Info className="text-brand-gold" size={18} />
+                    <span className="text-xs font-black text-brand-gold uppercase tracking-[0.2em]">REVIEW</span>
                 </div>
                 <div className="h-4 w-[1px] bg-white/20"></div>
                 <h3 className="text-sm font-geometric font-bold text-white uppercase tracking-tight">{title}</h3>
@@ -29,7 +29,7 @@ const ReportAlertBoxKPI: React.FC<ReportAlertBoxProps> = ({ title, issue, sugges
 
                 {/* Alert Side (Problem) */}
                 <div className="flex-1 space-y-2 md:pr-6">
-                    <span className="text-[10px] font-black text-brand-alert uppercase tracking-widest flex items-center gap-2">
+                    <span className="text-[10px] font-black text-brand-gold uppercase tracking-widest flex items-center gap-2">
                         <Zap size={12} /> Deviation Detect
                     </span>
                     <p className="text-xs font-bold text-white leading-relaxed">

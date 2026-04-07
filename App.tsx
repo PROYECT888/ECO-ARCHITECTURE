@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Page, UserProfile } from './types';
 import Navbar from './components/Navbar';
 import LandingPage from './components/LandingPage';
@@ -8,12 +8,13 @@ import AboutPage from './components/AboutPage';
 import FAQPage from './components/FAQPage';
 import AuthPage from './components/AuthPage';
 import DashboardPage from './components/DashboardPage';
+import { supabase } from './lib/supabase';
 import StaffPortal from './components/StaffPortal';
 import SupervisorDashboard from './components/SupervisorDashboard';
 import Footer from './components/Footer';
 
 const App: React.FC = () => {
-  const isDev = (import.meta as any).env?.DEV;
+  const isDev = true;
   
   // 🛡️ Ironclad MVP Path Bypass (Top-Level Constant for Immediate Detection)
   const isMVPPath = typeof window !== 'undefined' && (
@@ -35,7 +36,7 @@ const App: React.FC = () => {
     window.scrollTo(0, 0);
   }, [currentPage]);
 
-  const handleLogin = (user: UserProfile) => {
+  const handleLogin = useCallback((user: UserProfile) => {
     setCurrentUser(user);
     if (user.role === 'admin' || user.role === 'manager') {
       setCurrentPage(Page.DASHBOARD);
@@ -44,9 +45,12 @@ const App: React.FC = () => {
     } else {
       setCurrentPage(Page.STAFF_PORTAL);
     }
-  };
+  }, []);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(async () => {
+    // 🛡️ Perform Full Supabase Sign-Out
+    await supabase.auth.signOut();
+
     // Reverting aggressive cleanup:
     // Allow 'ecometricus_' variables to persist through logout 
     // so Jack the Chef's data appears for Jane the Manager.
@@ -56,7 +60,11 @@ const App: React.FC = () => {
 
     // A soft reset back to sign in
     window.scrollTo(0, 0);
-  };
+  }, []);
+
+  const handleUpdateUser = useCallback((updatedFields: Partial<UserProfile>) => {
+    setCurrentUser(prev => prev ? { ...prev, ...updatedFields } : null);
+  }, []);
 
   const renderPage = () => {
     switch (currentPage) {
@@ -69,7 +77,7 @@ const App: React.FC = () => {
       case Page.FAQ:
         return <FAQPage />;
       case Page.DASHBOARD:
-        return currentUser ? <DashboardPage user={currentUser} onLogout={handleLogout} /> : <LandingPage onNavigate={setCurrentPage} />;
+        return currentUser ? <DashboardPage user={currentUser} onLogout={handleLogout} onUpdateUser={handleUpdateUser} /> : <LandingPage onNavigate={setCurrentPage} />;
       case Page.SUPERVISOR_DASHBOARD:
         return currentUser ? <SupervisorDashboard user={currentUser} onLogout={handleLogout} /> : <LandingPage onNavigate={setCurrentPage} />;
       case Page.STAFF_PORTAL:

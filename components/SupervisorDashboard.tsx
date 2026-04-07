@@ -110,6 +110,13 @@ const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, onLogou
   // Supabase Data Fetch - Food Cost
   useEffect(() => {
     const fetchFoodCost = async () => {
+      // 🛡️ Auth Sync Gate (Phase 3 Repair)
+      const { data: { session }, error: operationalAuthError } = await supabase.auth.getSession();
+      if (!session || operationalAuthError) {
+        onLogout();
+        return;
+      }
+      
       // 1. Get Outlet ID for the current user's outlet (or default to Royal if needed for demo)
       const targetOutletCode = user.outletCode || 'ROY02';
 

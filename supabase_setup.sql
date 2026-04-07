@@ -3,9 +3,18 @@ create table if not exists public.outlets (
   id uuid default gen_random_uuid() primary key,
   name text not null,
   code text not null unique,
+  location text,
   color_hex text not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
+
+-- Migration: Add location column if it doesn't exist
+do $$ 
+begin 
+  if not exists (select 1 from information_schema.columns where table_name='outlets' and column_name='location') then
+    alter table public.outlets add column location text;
+  end if;
+end $$;
 
 alter table public.outlets enable row level security;
 drop policy if exists "Enable read access for all" on public.outlets;
@@ -13,12 +22,12 @@ create policy "Enable read access for all" on public.outlets for select using (t
 drop policy if exists "Enable all access for all" on public.outlets;
 create policy "Enable all access for all" on public.outlets for all using (true) with check (true);
 
-insert into public.outlets (name, code, color_hex) values
-  ('Royal', 'ROY02', '#FF914D'),   -- Orange
-  ('Fisher''s', 'FISH01', '#C8A413'), -- Gold
-  ('Ralph''s', 'RAL03', '#77B139'),   -- Green
-  ('Gusto', 'GUS04', '#718096')       -- Grey
-on conflict (code) do update set color_hex = excluded.color_hex, name = excluded.name;
+insert into public.outlets (name, code, location, color_hex) values
+  ('Royal', 'ROY02', 'Bangkok', '#FF914D'),   -- Orange
+  ('Fisher''s', 'FISH01', 'Phuket', '#C8A413'), -- Gold
+  ('Ralph''s', 'RAL03', 'Chiang Mai', '#77B139'),   -- Green
+  ('Gusto', 'GUS04', 'Samui', '#718096')       -- Grey
+on conflict (code) do update set color_hex = excluded.color_hex, name = excluded.name, location = excluded.location;
 
 create table if not exists public.gamification_actions (
   id uuid default gen_random_uuid() primary key,

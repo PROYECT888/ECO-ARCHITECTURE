@@ -205,8 +205,8 @@ const MilaWidget: React.FC<MilaWidgetProps> = ({ context }) => {
                 {/* "Bright Green color icon... circular outline" */}
                 <div className="absolute inset-0 rounded-full border border-[#39ff14] opacity-50 group-hover:opacity-100 transition-opacity"></div>
                 <Lightbulb className="text-[#39ff14] animate-pulse" size={32} />
-                <div className="absolute -top-1 -right-1 w-5 h-5 bg-brand-alert rounded-full border-2 border-brand-dark flex items-center justify-center">
-                    <span className="text-[10px] font-bold text-white">1</span>
+                <div className="absolute -top-1 -right-1 w-5 h-5 bg-brand-gold rounded-full border-2 border-brand-dark flex items-center justify-center">
+                    <span className="text-[10px] font-bold text-brand-dark">1</span>
                 </div>
             </button>
         );

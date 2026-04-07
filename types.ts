@@ -18,6 +18,7 @@ export interface Outlet {
   id?: string;
   name: string;
   code: string;
+  location?: string;
   color_hex?: string;
 }
 
@@ -30,6 +31,7 @@ export interface UserProfile {
   outletCode: string;
   permissions?: string[];
   password?: string;
+  legal_consent?: boolean;
 }
 
 export interface MetricData {

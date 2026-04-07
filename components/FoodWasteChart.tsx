@@ -3,7 +3,7 @@ import React from 'react';
 import { MoreHorizontal } from 'lucide-react';
 
 const FoodWasteChart = () => {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
     // Mock data for waste in kg
     const data = [45, 62, 38, 75, 52, 68, 40];
     const maxVal = Math.max(...data);
