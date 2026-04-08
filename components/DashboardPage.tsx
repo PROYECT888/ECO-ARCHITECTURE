@@ -457,7 +457,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout, onUpdateU
           setCompany(prev => ({ 
             ...prev, 
             name: companyRes.data.admin_name, 
-            company_name: companyRes.data.company_name || companyRes.data.admin_name
+            company_name: companyRes.data.company_name || companyRes.data.admin_name,
+            city: companyRes.data.city || prev.city,
+            country: companyRes.data.country || prev.country
           }));
           
           // 🛡️ Audit Sync Hydration (Phase 4)
@@ -533,17 +535,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout, onUpdateU
     };
     fetchSystemSettings();
 
-    // 🛡️ Auth State Change Listener (Phase 2 Repair)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        onLogout();
-      }
-    });
-
-    return () => {
-      isSubscribed = false;
-      subscription.unsubscribe();
-    };
+    // Note: Removed local onAuthStateChange listener to prevent infinite loop on Exit.
   }, []); // ✅ Run ONLY ONCE on mount. Stabilization applied.
 
   // Sync currentOutletCode automatically when currentOutletName changes
@@ -561,7 +553,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout, onUpdateU
       // 🛡️ Auth Sync Gate (Phase 3 Repair)
       const { data: { session }, error: operationalAuthError } = await supabase.auth.getSession();
       if (!session || operationalAuthError || isHydrating) {
-        if (!session || operationalAuthError) onLogout();
         return;
       }
 
@@ -991,7 +982,19 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout, onUpdateU
        return;
     }
 
-    setOutlets(prev => prev.filter(o => o.code !== code));
+    setOutlets(prev => {
+      const remaining = prev.filter(o => o.code !== code);
+      // 🔥 FIX: Persist remaining outlets to DB so default ones don't resurrect if the DB was empty!
+      if (remaining.length > 0) {
+        supabase.from('outlets').upsert(remaining.map(o => ({
+          name: o.name,
+          code: o.code,
+          location: o.location || company.city,
+          color_hex: o.color_hex || '#77B139'
+        })), { onConflict: 'code' }).then();
+      }
+      return remaining;
+    });
     alert("Outlet Removed Successfully.");
   };
 
@@ -1018,6 +1021,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout, onUpdateU
         user_id: userId,
         admin_name: company.name,
         company_name: company.company_name || company.name,
+        city: company.city,
+        country: company.country,
         
         // 🔒 Audit Persistence Sync (Phase 4)
         audit_cycle: auditReport.cycle,
@@ -1280,7 +1285,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout, onUpdateU
   return (
     <div className={`relative min-h-screen ${isPendingConsent ? 'overflow-hidden' : ''}`}>
       {/* 🛡️ Header Profile (Outside the blur/block layer for Exit access) */}
-      <header className="sticky top-0 z-50 bg-brand-dark/95 backdrop-blur-xl border-b-2 border-brand-gold/50 h-24 sm:h-32 shrink-0 shadow-lg px-4 sm:px-8">
+      <header className="sticky top-0 z-[9999] pointer-events-auto bg-brand-dark/95 backdrop-blur-xl border-b-2 border-brand-gold/50 h-24 sm:h-32 shrink-0 shadow-lg px-4 sm:px-8">
         <div className="max-w-[1920px] mx-auto h-full flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Logo size="md" withLabel />

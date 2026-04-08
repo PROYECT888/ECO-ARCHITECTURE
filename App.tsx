@@ -48,18 +48,15 @@ const App: React.FC = () => {
   }, []);
 
   const handleLogout = useCallback(async () => {
-    // 🛡️ Perform Full Supabase Sign-Out
-    await supabase.auth.signOut();
-
-    // Reverting aggressive cleanup:
-    // Allow 'ecometricus_' variables to persist through logout 
-    // so Jack the Chef's data appears for Jane the Manager.
-
-    setCurrentUser(null);
-    setCurrentPage(Page.SIGN_IN);
-
-    // A soft reset back to sign in
-    window.scrollTo(0, 0);
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn("Supabase signout failed", e);
+    } finally {
+      // Force a hard reload to completely destroy any lingering React state loops
+      // and drop the user back at the clean authentication screen.
+      window.location.href = '/';
+    }
   }, []);
 
   const handleUpdateUser = useCallback((updatedFields: Partial<UserProfile>) => {
