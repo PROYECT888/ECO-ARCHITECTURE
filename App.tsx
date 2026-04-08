@@ -14,7 +14,7 @@ import SupervisorDashboard from './components/SupervisorDashboard';
 import Footer from './components/Footer';
 
 const App: React.FC = () => {
-  const isDev = true;
+  const isDev = import.meta.env.DEV;
   
   // 🛡️ Ironclad MVP Path Bypass (Top-Level Constant for Immediate Detection)
   const isMVPPath = typeof window !== 'undefined' && (
