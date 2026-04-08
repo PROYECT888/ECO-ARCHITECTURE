@@ -1304,7 +1304,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout, onUpdateU
               </div>
               <button
                 onClick={onLogout}
-                className="flex items-center gap-2 px-3 py-1 bg-brand-dark rounded-full border border-brand-alert/30 text-brand-alert hover:bg-brand-alert hover:text-white text-[8px] font-black uppercase tracking-widest transition-all shadow-lg ml-2"
+                className="relative z-50 pointer-events-auto cursor-pointer flex items-center gap-2 px-3 py-1 bg-brand-dark rounded-full border border-brand-alert/30 text-brand-alert hover:bg-brand-alert hover:text-white text-[8px] font-black uppercase tracking-widest transition-all shadow-lg ml-2"
               >
                 <LogOut size={10} /> Exit
               </button>
