@@ -446,9 +446,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout, onUpdateU
         const authUser = session.user;
 
         // Strict live database queries (Hybrid Path)
-        const [benchmarksRes, personnelRes, companyRes, outletsRes] = await Promise.all([
-          supabase.from('benchmarks').select('*').eq('user_id', authUser.id).maybeSingle(),
-          supabase.from('personnel').select('*'),
+        const [parametersRes, personnelRes, companyRes, outletsRes] = await Promise.all([
+          supabase.from('benchmarks').select('*').eq('user_id', authUser.id).eq('outlet_name', 'Unknown Outlet').maybeSingle(),
+          supabase.from('personnel').select('*').eq('user_id', authUser.id),
           supabase.from('company_settings').select('*').eq('user_id', authUser.id).maybeSingle(),
           supabase.from('outlets').select('*')
         ]);
@@ -458,8 +458,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout, onUpdateU
             ...prev, 
             name: companyRes.data.admin_name, 
             company_name: companyRes.data.company_name || companyRes.data.admin_name,
-            city: companyRes.data.city || prev.city,
-            country: companyRes.data.country || prev.country
+            city: companyRes.data.city_country || prev.city,
+            region: companyRes.data.region || prev.region
           }));
           
           // 🛡️ Audit Sync Hydration (Phase 4)
@@ -493,18 +493,20 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout, onUpdateU
           return DEFAULT_OUTLETS;
         });
 
-        if (benchmarksRes.data) {
+        if (parametersRes.data) {
           setParams(prev => ({
             ...prev,
-            wasteTarget: benchmarksRes.data.food_waste_target_kg || prev.wasteTarget,
-            waterTarget: benchmarksRes.data.water_usage_target_l || prev.waterTarget,
-            energyTarget: benchmarksRes.data.energy_limit_kwh || prev.energyTarget
+            id: parametersRes.data.id || prev.id,
+            wasteTarget: parametersRes.data.food_waste_target_kg || prev.wasteTarget,
+            waterTarget: parametersRes.data.water_usage_liters || parametersRes.data.water_usage_target_l || prev.waterTarget,
+            energyTarget: parametersRes.data.energy_limit_kwh || prev.energyTarget,
+            foodCostTarget: parametersRes.data.food_cost_cap_percent || prev.foodCostTarget,
+            laborCostTarget: parametersRes.data.labor_cost_cap_percent || prev.laborCostTarget
           }));
           
-          // 🛡️ Legal Consent Hydration (Phase 6)
-          // For new users with no benchmarks record, ensure we still explicitly set/check consent
-          const consentStatus = benchmarksRes.data?.has_consented ?? user.legal_consent ?? false;
-          onUpdateUser({ legal_consent: consentStatus });
+          if (parametersRes.data.updated_at || parametersRes.data.created_at) {
+            setParamsUpdatedAt(new Date(parametersRes.data.updated_at || parametersRes.data.created_at).toLocaleString());
+          }
         } else {
           // If no benchmarks, explicitly ensure legal_consent is false for Admins
           if (user.role?.toLowerCase() === 'admin') {
@@ -707,6 +709,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout, onUpdateU
   const [users, setUsers] = useState<(UserProfile & { password?: string })[]>([]);
 
   const [params, setParams] = useState({
+    id: crypto.randomUUID(),
     wasteUnit: 'kg',
     wasteTarget: 100,
     waterTarget: 30000,
@@ -722,6 +725,54 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout, onUpdateU
     crmApiKey: '',
     pmsApiKey: ''
   });
+
+  const [paramsUpdatedAt, setParamsUpdatedAt] = useState<string | null>(null);
+
+  // Dynamic fetch whenever the selected outlet changes
+  useEffect(() => {
+    const fetchDynamicBenchmarks = async () => {
+      const selectedOutletName = params.benchmarkRegion === 'Manual' && params.selectedManualOutlet
+        ? (outlets.find(o => o.code === params.selectedManualOutlet)?.name || 'Unknown Outlet')
+        : 'Unknown Outlet';
+        
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      const { data, error } = await supabase
+        .from('benchmarks')
+        .select('*')
+        .eq('outlet_name', selectedOutletName)
+        .eq('user_id', session.user.id)
+        .single();
+        
+      if (data) {
+        setParams(prev => ({
+          ...prev,
+          id: data.id || prev.id,
+          wasteTarget: data.food_waste_target_kg || prev.wasteTarget,
+          energyTarget: data.energy_limit_kwh || prev.energyTarget,
+          waterTarget: data.water_usage_liters || data.water_usage_target_l || prev.waterTarget
+        }));
+        
+        if (data.updated_at || data.created_at) {
+          setParamsUpdatedAt(new Date(data.updated_at || data.created_at).toLocaleString());
+        }
+      } else {
+        // Fallback to absolute defaults if no data exists
+        setParams(prev => ({
+          ...prev,
+          wasteTarget: 100,
+          energyTarget: 1200,
+          waterTarget: 30000
+        }));
+        setParamsUpdatedAt(null);
+      }
+    };
+
+    if (params.benchmarkRegion === 'Manual' && params.selectedManualOutlet) {
+      fetchDynamicBenchmarks();
+    }
+  }, [params.benchmarkRegion, params.selectedManualOutlet, outlets]);
 
   const [manualOutletSettings, setManualOutletSettings] = useState<Record<string, any>>({});
 
@@ -799,11 +850,22 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout, onUpdateU
     const link = `https://ecometricus.app/access/${enrollOutlet}?token=${password.toLowerCase()}`;
     const upsertId = enrollId || Date.now().toString();
 
+    // 🛡️ Auth Sync Gate (Phase 3 Repair)
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      alert("User authentication required for personnel management.");
+      return;
+    }
+
     // Format strict schema constraints for Personnel table
     const mappedOutlet = outlets.find(o => o.code === enrollOutlet);
     const dbPayload: any = {
+      user_id: session.user.id,
       full_name: enrollName,
+      email: enrollEmail,
       role: enrollRole.toLowerCase(),
+      position: enrollPosition,
+      outlet_code: enrollOutlet,
       pincode: password
     };
     
@@ -813,13 +875,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout, onUpdateU
     }
     if (mappedOutlet && mappedOutlet.id) {
        dbPayload.outlet_id = mappedOutlet.id;
-    }
-
-    // 🛡️ Auth Sync Gate (Phase 3 Repair)
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      alert("User authentication required for personnel management.");
-      return;
     }
 
     // Trigger Strict Insert (as requested)
@@ -841,7 +896,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout, onUpdateU
     if (error || (status !== 200 && status !== 201)) {
        console.error("PERSONNEL_UPSERT_FAILURE:", error);
        alert("Database Error: " + (error?.message || `Failed to persist personnel (Status: ${status})`));
-       return;
+       return; // STRICT EXIT ON ERROR - no success message shown
     }
 
     alert("Save Successful");
@@ -946,11 +1001,12 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout, onUpdateU
       color_hex: '#718096' // Default Grey for new outlets
     };
 
-    const { error, status } = await supabase.from('outlets').insert({
+    const { error, status } = await supabase.from('outlets').upsert({
+      user_id: session.user.id,
       name: newOutlet.name,
       code: newOutlet.code,
       color_hex: newOutlet.color_hex
-    });
+    }, { onConflict: 'name' });
 
     if (error || (status !== 201 && status !== 200)) {
       console.error("OUTLET_INSERT_FAILURE:", error);
@@ -987,6 +1043,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout, onUpdateU
       // 🔥 FIX: Persist remaining outlets to DB so default ones don't resurrect if the DB was empty!
       if (remaining.length > 0) {
         supabase.from('outlets').upsert(remaining.map(o => ({
+          user_id: session.user.id,
           name: o.name,
           code: o.code,
           location: o.location || company.city,
@@ -1021,8 +1078,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout, onUpdateU
         user_id: userId,
         admin_name: company.name,
         company_name: company.company_name || company.name,
-        city: company.city,
-        country: company.country,
+        city_country: company.city,
+        region: company.region,
         
         // 🔒 Audit Persistence Sync (Phase 4)
         audit_cycle: auditReport.cycle,
@@ -1047,7 +1104,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout, onUpdateU
             location: o.location || company.city,
             color_hex: o.color_hex || '#77B139'
           })),
-          { onConflict: 'code' }
+          { onConflict: 'name' }
         );
         if (outletError || (outletStatus !== 200 && outletStatus !== 201)) {
           console.error("OUTLET_UPSERT_FAILURE:", outletError);
@@ -1080,24 +1137,32 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout, onUpdateU
     }
     const userId = session.user.id;
 
-    // Trigger Strict DB Upsert
-    const { error, status } = await supabase.from('benchmarks').upsert({
-      user_id: userId,
-      food_waste_target_kg: params.wasteTarget,
-      water_usage_target_l: params.waterTarget,
-      energy_limit_kwh: params.energyTarget,
-      has_consented: true
-    });
+    const selectedOutletName = params.benchmarkRegion === 'Manual' && params.selectedManualOutlet
+      ? (outlets.find(o => o.code === params.selectedManualOutlet)?.name || 'Unknown Outlet')
+      : 'Unknown Outlet';
 
-    if (error || (status !== 200 && status !== 201)) {
-      console.error("BENCHMARK_UPSERT_FAILURE:", error);
-      alert("Database Error: " + (error?.message || `Failed to persist benchmarks (Status: ${status})`));
-      setSaveStatus('idle');
-      return;
+    const foodWaste = params.wasteTarget.toString();
+    const energyLimit = params.energyTarget.toString();
+    const waterUsage = params.waterTarget.toString();
+
+    const { error } = await supabase
+      .from('benchmarks')
+      .upsert({
+        user_id: session.user.id,
+        outlet_name: selectedOutletName,
+        food_waste_target_kg: parseFloat(foodWaste),
+        energy_limit_kwh: parseFloat(energyLimit),
+        water_usage_liters: parseFloat(waterUsage),
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id, outlet_name' });
+
+    if (error) {
+      alert('DATABASE REJECTION: ' + error.message);
+      console.error(error);
+    } else {
+      alert('SUCCESS: DATA PERSISTED AT ' + new Date().toLocaleTimeString());
+      setParamsUpdatedAt(new Date().toLocaleString());
     }
-
-    // ONLY UPDATE LOCAL UI STATE ON SUCCESS
-    alert("Save Successful");
 
     if (params.benchmarkRegion === 'Manual' && params.selectedManualOutlet) {
       setManualOutletSettings(prev => ({
@@ -2436,7 +2501,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout, onUpdateU
                               )}
                             </div>
 
-                            <div className="flex justify-center pt-2">
+                            <div className="flex flex-col items-center pt-2 gap-3">
                               <button
                                 onClick={() => setIsEditingBenchmarks(!isEditingBenchmarks)}
                                 className={`px-8 py-2.5 rounded-full flex items-center gap-3 text-[9px] font-black uppercase tracking-widest shadow-xl transition-all ${isEditingBenchmarks ? 'bg-brand-gold text-brand-dark ring-2 ring-brand-gold/30' : 'bg-brand-gold text-brand-dark hover:scale-105'}`}
@@ -2444,6 +2509,12 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout, onUpdateU
                                 {isEditingBenchmarks ? <Unlock size={12} /> : <Edit2 size={12} />}
                                 {isEditingBenchmarks ? 'Benchmarks Unlocked' : 'Edit Parameters'}
                               </button>
+                              
+                              {paramsUpdatedAt && (
+                                <div className="text-[8px] font-black text-gray-400/80 uppercase tracking-[0.2em] animate-pulse">
+                                  Last Updated: {paramsUpdatedAt}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
