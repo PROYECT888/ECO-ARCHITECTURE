@@ -68,7 +68,7 @@ const App: React.FC = () => {
       case Page.HOME:
         // Show real app if on localhost, or if using the /MVP bypass path (url or session flag).
         // Otherwise, show the Under Construction shield on production.
-        return (isDev || isMVPPath) ? <LandingPage onNavigate={setCurrentPage} /> : <UnderConstruction />;
+        return (isMVPPath) ? <LandingPage onNavigate={setCurrentPage} /> : <UnderConstruction />;
       case Page.ABOUT:
         return <AboutPage />;
       case Page.FAQ:
@@ -92,7 +92,7 @@ const App: React.FC = () => {
   const hideNavigation = currentPage === Page.STAFF_PORTAL || 
                         currentPage === Page.SUPERVISOR_DASHBOARD || 
                         currentPage === Page.DASHBOARD || 
-                        (currentPage === Page.HOME && !isDev && !isMVPPath);
+                        (currentPage === Page.HOME && !isMVPPath);
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-dark text-white font-body selection:bg-brand-gold/30 selection:text-brand-gold">
